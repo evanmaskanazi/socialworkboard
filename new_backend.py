@@ -13,7 +13,6 @@ import os
 import secrets
 import jwt
 from datetime import datetime, timedelta, date
-import pandas as pd
 from sqlalchemy import and_, or_, func
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
