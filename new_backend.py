@@ -1,3 +1,4 @@
+
 """
 Enhanced Therapeutic Companion Backend
 With PostgreSQL, Authentication, and Role-Based Access
@@ -13,6 +14,7 @@ import os
 import secrets
 import jwt
 from datetime import datetime, timedelta, date
+import pandas as pd
 from sqlalchemy import and_, or_, func
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -1063,11 +1065,28 @@ def generate_report(client_id, week):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# ============= HEALTH CHECK =============
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
 # ============= INITIALIZATION =============
 
-@app.before_first_request
+# Flag to ensure single initialization
+_initialized = False
+
 def initialize_database():
     """Initialize database with default data"""
+    global _initialized
+    if _initialized:
+        return
+    
+    _initialized = True
     db.create_all()
     
     # Add default tracking categories if not exist
@@ -1090,10 +1109,24 @@ def initialize_database():
             db.session.add(category)
         
         db.session.commit()
+        print("Database initialized with default tracking categories")
+
+# Initialize on first request (replaces @app.before_first_request)
+@app.before_request
+def before_request():
+    initialize_database()
+
+# Don't initialize on import for production
+# Let init_db.py handle it during deployment
+if not os.environ.get('PRODUCTION'):
+    with app.app_context():
+        initialize_database()
 
 if __name__ == '__main__':
+    # Ensure database is created when running directly
     with app.app_context():
         db.create_all()
+        initialize_database()
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=not os.environ.get('PRODUCTION'))
