@@ -1,2 +1,0 @@
-web: gunicorn new_backend:app
-release: python init_db.py
