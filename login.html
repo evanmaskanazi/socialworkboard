@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Therapeutic Companion - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .auth-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .auth-body {
+            padding: 2rem;
+        }
+
+        .tab-switcher {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .role-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .role-option {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .role-option:hover {
+            border-color: #667eea;
+        }
+
+        .role-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .role-option h3 {
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .role-option p {
+            color: #666;
+            font-size: 0.875rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .auth-container {
+                margin: 1rem;
+            }
+
+            .auth-header {
+                padding: 1.5rem;
+            }
+
+            .auth-body {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>Therapeutic Companion</h1>
+            <p>Your journey to wellness starts here</p>
+        </div>
+        
+        <div class="auth-body">
+            <div id="messageContainer"></div>
+            
+            <div class="tab-switcher">
+                <button class="tab-button active" onclick="showTab('login')">Login</button>
+                <button class="tab-button" onclick="showTab('register')">Register</button>
+            </div>
+            
+            <!-- Login Form -->
+            <div id="loginForm" class="tab-content">
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" class="form-input" required placeholder="your@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" class="form-input" required placeholder="••••••••">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="loginBtn">
+                        <span id="loginBtnText">Login</span>
+                    </button>
+                    
+                    <div class="forgot-password">
+                        <a href="#" onclick="showForgotPassword()">Forgot your password?</a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Registration Form -->
+            <div id="registerForm" class="tab-content" style="display: none;">
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label class="form-label">I am a:</label>
+                        <div class="role-selector">
+                            <div class="role-option" onclick="selectRole('therapist')">
+                                <h3>👨‍⚕️ Therapist</h3>
+                                <p>Professional account</p>
+                            </div>
+                            <div class="role-option" onclick="selectRole('client')">
+                                <h3>😊 Client</h3>
+                                <p>Personal journey</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="therapistFields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label" for="therapistName">Full Name*</label>
+                            <input type="text" id="therapistName" class="form-input" placeholder="Dr. Jane Smith">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="licenseNumber">License Number*</label>
+                            <input type="text" id="licenseNumber" class="form-input" placeholder="LIC123456">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="organization">Organization (Optional)</label>
+                            <input type="text" id="organization" class="form-input" placeholder="Mental Health Clinic">
+                        </div>
+                    </div>
+                    
+                    <div id="clientFields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label" for="therapistCode">Therapist Access Code*</label>
+                            <input type="text" id="therapistCode" class="form-input" placeholder="Provided by your therapist">
+                            <small style="color: #666;">Ask your therapist for their access code to register</small>
+                        </div>
+                    </div>
+                    
+                    <div id="commonFields" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label" for="registerEmail">Email*</label>
+                            <input type="email" id="registerEmail" class="form-input" required placeholder="your@email.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="registerPassword">Password*</label>
+                            <input type="password" id="registerPassword" class="form-input" required placeholder="At least 8 characters">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="confirmPassword">Confirm Password*</label>
+                            <input type="password" id="confirmPassword" class="form-input" required placeholder="Repeat password">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="registerBtn">
+                            <span id="registerBtnText">Create Account</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedRole = null;
+
+        // Show tab
+        function showTab(tab) {
+            // Update buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update forms
+            if (tab === 'login') {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('registerForm').style.display = 'none';
+            } else {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('registerForm').style.display = 'block';
+            }
+            
+            // Clear messages
+            clearMessages();
+        }
+
+        // Select role
+        function selectRole(role) {
+            selectedRole = role;
+            
+            // Update UI
+            document.querySelectorAll('.role-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Show appropriate fields
+            document.getElementById('commonFields').style.display = 'block';
+            
+            if (role === 'therapist') {
+                document.getElementById('therapistFields').style.display = 'block';
+                document.getElementById('clientFields').style.display = 'none';
+                document.getElementById('therapistName').required = true;
+                document.getElementById('licenseNumber').required = true;
+                document.getElementById('therapistCode').required = false;
+            } else {
+                document.getElementById('therapistFields').style.display = 'none';
+                document.getElementById('clientFields').style.display = 'block';
+                document.getElementById('therapistName').required = false;
+                document.getElementById('licenseNumber').required = false;
+                document.getElementById('therapistCode').required = true;
+            }
+        }
+
+        // Handle login
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            // Show loading
+            const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
+            loginBtn.disabled = true;
+            loginBtnText.innerHTML = '<span class="loading"></span>';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Save token
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userRole', data.user.role);
+                    
+                    showMessage('Login successful! Redirecting...', 'success');
+                    
+                    // Redirect based on role
+                    setTimeout(() => {
+                        if (data.user.role === 'therapist') {
+                            window.location.href = '/therapist-dashboard.html';
+                        } else {
+                            window.location.href = '/client-dashboard.html';
+                        }
+                    }, 1000);
+                } else {
+                    showMessage(data.error || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtnText.textContent = 'Login';
+            }
+        }
+
+        // Handle registration
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            if (!selectedRole) {
+                showMessage('Please select whether you are a therapist or client', 'error');
+                return;
+            }
+            
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match', 'error');
+                return;
+            }
+            
+            if (password.length < 8) {
+                showMessage('Password must be at least 8 characters long', 'error');
+                return;
+            }
+            
+            // Prepare data
+            const data = {
+                email,
+                password,
+                role: selectedRole
+            };
+            
+            if (selectedRole === 'therapist') {
+                data.name = document.getElementById('therapistName').value;
+                data.license_number = document.getElementById('licenseNumber').value;
+                data.organization = document.getElementById('organization').value;
+            } else {
+                // For demo purposes, we'll handle therapist code validation on the backend
+                data.therapist_code = document.getElementById('therapistCode').value;
+            }
+            
+            // Show loading
+            const registerBtn = document.getElementById('registerBtn');
+            const registerBtnText = document.getElementById('registerBtnText');
+            registerBtn.disabled = true;
+            registerBtnText.innerHTML = '<span class="loading"></span>';
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Registration successful! Logging you in...', 'success');
+                    
+                    // Save token
+                    localStorage.setItem('authToken', result.token);
+                    localStorage.setItem('userRole', result.user.role);
+                    
+                    // Redirect
+                    setTimeout(() => {
+                        if (result.user.role === 'therapist') {
+                            window.location.href = '/therapist-dashboard.html';
+                        } else {
+                            window.location.href = '/client-dashboard.html';
+                        }
+                    }, 1500);
+                } else {
+                    showMessage(result.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                registerBtn.disabled = false;
+                registerBtnText.textContent = 'Create Account';
+            }
+        }
+
+        // Show forgot password
+        function showForgotPassword() {
+            showMessage('Password reset functionality coming soon!', 'success');
+        }
+
+        // Show message
+        function showMessage(text, type = 'success') {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            
+            container.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Clear messages
+        function clearMessages() {
+            document.getElementById('messageContainer').innerHTML = '';
+        }
+
+        // Check if already logged in
+        const authToken = localStorage.getItem('authToken');
+        const userRole = localStorage.getItem('userRole');
+        
+        if (authToken && userRole) {
+            if (userRole === 'therapist') {
+                window.location.href = '/therapist-dashboard.html';
+            } else {
+                window.location.href = '/client-dashboard.html';
+            }
+        }
+    </script>
+</body>
+</html>

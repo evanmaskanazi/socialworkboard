@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Therapy Journey - Client Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Welcome Message */
+        .welcome-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .welcome-card h2 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-card p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .icon-emotion { background: #ffeaa7; }
+        .icon-medication { background: #74b9ff; }
+        .icon-activity { background: #55efc4; }
+        .icon-goals { background: #fd79a8; }
+        .icon-progress { background: #a29bfe; }
+
+        /* Check-in Status */
+        .checkin-status {
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .checkin-complete {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .checkin-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Daily Check-in Form */
+        .checkin-form {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .form-section h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Rating Scale */
+        .rating-scale {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .rating-button {
+            min-width: 60px;
+            height: 60px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .rating-button:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .rating-button.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .rating-emoji {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Goals */
+        .goal-list {
+            list-style: none;
+        }
+
+        .goal-item {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .goal-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .goal-text {
+            flex: 1;
+            color: #333;
+        }
+
+        .goal-item.completed {
+            background: #e7f5ff;
+        }
+
+        .goal-item.completed .goal-text {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        /* Progress Chart Placeholder */
+        .progress-chart {
+            height: 300px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        /* Notes Textarea */
+        .notes-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Reminders */
+        .reminder-card {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            color: #333;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .reminder-icon {
+            font-size: 2rem;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .rating-scale {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>My Therapy Journey</h1>
+            <div class="user-info">
+                <span id="clientSerial">Loading...</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Welcome Message -->
+        <div class="welcome-card">
+            <h2 id="welcomeMessage">Welcome back!</h2>
+            <p id="encouragementMessage">Remember, every small step counts on your journey to wellness.</p>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div id="messageContainer"></div>
+
+        <!-- Daily Check-in Status -->
+        <div id="checkinStatus" class="checkin-status checkin-pending">
+            <strong>Daily Check-in:</strong> <span id="checkinStatusText">Not completed yet today</span>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Today's Check-in Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Today's Check-in</h3>
+                    <div class="card-icon icon-emotion">😊</div>
+                </div>
+                <p>How are you feeling today? Take a moment to reflect on your emotional state, medication adherence, and physical activity.</p>
+                <button class="btn btn-primary" onclick="showCheckinForm()">Start Check-in</button>
+            </div>
+
+            <!-- Weekly Goals Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Weekly Goals</h3>
+                    <div class="card-icon icon-goals">🎯</div>
+                </div>
+                <ul class="goal-list" id="goalsList">
+                    <li class="loading">Loading goals...</li>
+                </ul>
+            </div>
+
+            <!-- Progress Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Your Progress</h3>
+                    <div class="card-icon icon-progress">📊</div>
+                </div>
+                <div class="progress-chart" id="progressChart">
+                    <span>Progress visualization coming soon...</span>
+                </div>
+                <button class="btn btn-secondary" onclick="viewDetailedProgress()">View Details</button>
+            </div>
+        </div>
+
+        <!-- Reminders Section -->
+        <div id="remindersSection">
+            <!-- Reminders will be dynamically added here -->
+        </div>
+
+        <!-- Daily Check-in Form (Hidden by default) -->
+        <div id="checkinForm" class="checkin-form" style="display: none;">
+            <h2>Daily Check-in</h2>
+            <p style="color: #666; margin-bottom: 2rem;">Take a moment to reflect on your day. Your responses help track your progress.</p>
+
+            <!-- Emotional State -->
+            <div class="form-section">
+                <h3><span class="rating-emoji">😊</span> How is your emotional state today?</h3>
+                <div class="rating-scale">
+                    <button type="button" class="rating-button" data-category="emotional" data-value="1" onclick="selectRating(this)">
+                        <span class="rating-emoji">😢</span>
+                        <span>1</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="emotional" data-value="2" onclick="selectRating(this)">
+                        <span class="rating-emoji">😟</span>
+                        <span>2</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="emotional" data-value="3" onclick="selectRating(this)">
+                        <span class="rating-emoji">😐</span>
+                        <span>3</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="emotional" data-value="4" onclick="selectRating(this)">
+                        <span class="rating-emoji">🙂</span>
+                        <span>4</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="emotional" data-value="5" onclick="selectRating(this)">
+                        <span class="rating-emoji">😄</span>
+                        <span>5</span>
+                    </button>
+                </div>
+                <textarea class="notes-textarea" id="emotionalNotes" placeholder="Any thoughts about your emotional state? (optional)"></textarea>
+            </div>
+
+            <!-- Medication Adherence -->
+            <div class="form-section">
+                <h3><span class="rating-emoji">💊</span> Did you take your medication as prescribed?</h3>
+                <div class="rating-scale">
+                    <button type="button" class="rating-button" data-category="medication" data-value="0" onclick="selectRating(this)">
+                        <span>N/A</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="medication" data-value="1" onclick="selectRating(this)">
+                        <span>No</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="medication" data-value="3" onclick="selectRating(this)">
+                        <span>Partial</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="medication" data-value="5" onclick="selectRating(this)">
+                        <span>Yes</span>
+                    </button>
+                </div>
+                <textarea class="notes-textarea" id="medicationNotes" placeholder="Any notes about medication? (optional)"></textarea>
+            </div>
+
+            <!-- Physical Activity -->
+            <div class="form-section">
+                <h3><span class="rating-emoji">🏃</span> How active were you today?</h3>
+                <div class="rating-scale">
+                    <button type="button" class="rating-button" data-category="activity" data-value="1" onclick="selectRating(this)">
+                        <span class="rating-emoji">🛌</span>
+                        <span>1</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="activity" data-value="2" onclick="selectRating(this)">
+                        <span class="rating-emoji">🚶</span>
+                        <span>2</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="activity" data-value="3" onclick="selectRating(this)">
+                        <span class="rating-emoji">🚴</span>
+                        <span>3</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="activity" data-value="4" onclick="selectRating(this)">
+                        <span class="rating-emoji">🏃</span>
+                        <span>4</span>
+                    </button>
+                    <button type="button" class="rating-button" data-category="activity" data-value="5" onclick="selectRating(this)">
+                        <span class="rating-emoji">🏋️</span>
+                        <span>5</span>
+                    </button>
+                </div>
+                <textarea class="notes-textarea" id="activityNotes" placeholder="What activities did you do? (optional)"></textarea>
+            </div>
+
+            <!-- Additional Tracking Categories -->
+            <div id="additionalCategories"></div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-primary" onclick="submitCheckin()">Submit Check-in</button>
+                <button class="btn btn-secondary" onclick="hideCheckinForm()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = localStorage.getItem('authToken');
+        let clientData = null;
+        let todayCheckin = null;
+        let trackingCategories = [];
+        let weeklyGoals = [];
+
+        // Check authentication
+        if (!authToken) {
+            window.location.href = '/login.html';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+            checkReminders();
+            setInterval(checkReminders, 60000); // Check every minute
+        });
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/client/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        logout();
+                        return;
+                    }
+                    throw new Error('Failed to load dashboard');
+                }
+
+                const data = await response.json();
+                clientData = data.client;
+                todayCheckin = data.today;
+                trackingCategories = data.tracking_categories;
+                weeklyGoals = data.weekly_goals;
+
+                updateUI();
+                loadProgress();
+            } catch (error) {
+                showMessage('Error loading dashboard: ' + error.message, 'error');
+            }
+        }
+
+        // Update UI with data
+        function updateUI() {
+            // Update client info
+            document.getElementById('clientSerial').textContent = `Client ID: ${clientData.serial}`;
+
+            // Update check-in status
+            const statusDiv = document.getElementById('checkinStatus');
+            const statusText = document.getElementById('checkinStatusText');
+            
+            if (todayCheckin.has_checkin) {
+                statusDiv.className = 'checkin-status checkin-complete';
+                statusText.textContent = 'Completed today! Great job! 🎉';
+            } else {
+                statusDiv.className = 'checkin-status checkin-pending';
+                statusText.textContent = 'Not completed yet today';
+            }
+
+            // Update welcome message with personalized greeting
+            const hour = new Date().getHours();
+            let greeting = 'Welcome back';
+            let encouragement = '';
+            
+            if (hour < 12) {
+                greeting = 'Good morning';
+                encouragement = 'Start your day with a positive mindset!';
+            } else if (hour < 18) {
+                greeting = 'Good afternoon';
+                encouragement = 'Keep up the great work today!';
+            } else {
+                greeting = 'Good evening';
+                encouragement = 'Time to reflect on your day and rest well.';
+            }
+            
+            document.getElementById('welcomeMessage').textContent = `${greeting}!`;
+            document.getElementById('encouragementMessage').textContent = encouragement;
+
+            // Update goals
+            updateGoalsList();
+
+            // Show reminders
+            showReminders();
+        }
+
+        // Update goals list
+        function updateGoalsList() {
+            const goalsList = document.getElementById('goalsList');
+            
+            if (weeklyGoals.length === 0) {
+                goalsList.innerHTML = '<li style="color: #999;">No goals set for this week</li>';
+                return;
+            }
+
+            goalsList.innerHTML = weeklyGoals.map(goal => {
+                const isCompleted = goal.today_completed === true;
+                return `
+                    <li class="goal-item ${isCompleted ? 'completed' : ''}">
+                        <input type="checkbox" 
+                               class="goal-checkbox" 
+                               ${isCompleted ? 'checked' : ''}
+                               ${goal.today_completed !== null ? 'disabled' : ''}
+                               onchange="toggleGoal(${goal.id}, this.checked)">
+                        <span class="goal-text">${goal.text}</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // Toggle goal completion
+        async function toggleGoal(goalId, completed) {
+            try {
+                // Update UI immediately
+                const goalItem = event.target.closest('.goal-item');
+                if (completed) {
+                    goalItem.classList.add('completed');
+                } else {
+                    goalItem.classList.remove('completed');
+                }
+
+                // This will be saved when the full check-in is submitted
+                // For now, just update local state
+                const goal = weeklyGoals.find(g => g.id === goalId);
+                if (goal) {
+                    goal.today_completed = completed;
+                }
+            } catch (error) {
+                showMessage('Error updating goal: ' + error.message, 'error');
+            }
+        }
+
+        // Show check-in form
+        function showCheckinForm() {
+            document.getElementById('checkinForm').style.display = 'block';
+            
+            // Add additional tracking categories
+            const additionalDiv = document.getElementById('additionalCategories');
+            const additionalCategories = trackingCategories.filter(cat => 
+                !['Emotion Level', 'Medication', 'Physical Activity'].includes(cat.name)
+            );
+            
+            if (additionalCategories.length > 0) {
+                additionalDiv.innerHTML = additionalCategories.map(cat => `
+                    <div class="form-section">
+                        <h3>${cat.name}</h3>
+                        <p style="color: #666; font-size: 0.9rem;">${cat.description}</p>
+                        <div class="rating-scale">
+                            ${[1,2,3,4,5].map(val => `
+                                <button type="button" 
+                                        class="rating-button" 
+                                        data-category="cat-${cat.id}" 
+                                        data-value="${val}"
+                                        onclick="selectRating(this)">
+                                    <span>${val}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Scroll to form
+            document.getElementById('checkinForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Hide check-in form
+        function hideCheckinForm() {
+            document.getElementById('checkinForm').style.display = 'none';
+        }
+
+        // Select rating
+        function selectRating(button) {
+            const category = button.dataset.category;
+            
+            // Remove selected from other buttons in same category
+            document.querySelectorAll(`.rating-button[data-category="${category}"]`).forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Add selected to clicked button
+            button.classList.add('selected');
+        }
+
+        // Submit check-in
+        async function submitCheckin() {
+            try {
+                // Gather basic ratings
+                const emotionalValue = document.querySelector('.rating-button[data-category="emotional"].selected')?.dataset.value;
+                const medicationValue = document.querySelector('.rating-button[data-category="medication"].selected')?.dataset.value;
+                const activityValue = document.querySelector('.rating-button[data-category="activity"].selected')?.dataset.value;
+
+                if (!emotionalValue || !medicationValue || !activityValue) {
+                    showMessage('Please complete all required ratings', 'error');
+                    return;
+                }
+
+                // Gather category responses
+                const categoryResponses = {};
+                trackingCategories.forEach(cat => {
+                    const selected = document.querySelector(`.rating-button[data-category="cat-${cat.id}"].selected`);
+                    if (selected) {
+                        categoryResponses[cat.id] = parseInt(selected.dataset.value);
+                    }
+                });
+
+                // Gather goal completions
+                const goalCompletions = {};
+                weeklyGoals.forEach(goal => {
+                    if (goal.today_completed !== null) {
+                        goalCompletions[goal.id] = goal.today_completed;
+                    }
+                });
+
+                const checkinData = {
+                    date: new Date().toISOString().split('T')[0],
+                    emotional_value: parseInt(emotionalValue),
+                    emotional_notes: document.getElementById('emotionalNotes').value,
+                    medication_value: parseInt(medicationValue),
+                    medication_notes: document.getElementById('medicationNotes').value,
+                    activity_value: parseInt(activityValue),
+                    activity_notes: document.getElementById('activityNotes').value,
+                    category_responses: categoryResponses,
+                    goal_completions: goalCompletions
+                };
+
+                const response = await fetch('/api/client/checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(checkinData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit check-in');
+                }
+
+                showMessage('Check-in submitted successfully! Great job! 🎉', 'success');
+                hideCheckinForm();
+                
+                // Reload dashboard to update status
+                loadDashboard();
+            } catch (error) {
+                showMessage('Error submitting check-in: ' + error.message, 'error');
+            }
+        }
+
+        // Load progress data
+        async function loadProgress() {
+            try {
+                const response = await fetch('/api/client/progress', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load progress');
+                }
+
+                const data = await response.json();
+                // TODO: Implement progress visualization
+                console.log('Progress data:', data);
+            } catch (error) {
+                console.error('Error loading progress:', error);
+            }
+        }
+
+        // View detailed progress
+        function viewDetailedProgress() {
+            // TODO: Implement detailed progress view
+            showMessage('Detailed progress view coming soon!', 'success');
+        }
+
+        // Check and show reminders
+        function checkReminders() {
+            const now = new Date();
+            const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            // Example reminder logic
+            if (!todayCheckin?.has_checkin && now.getHours() >= 20) {
+                showReminderNotification('Evening Check-in', "Don't forget to complete your daily check-in before bed!");
+            }
+        }
+
+        // Show reminders section
+        function showReminders() {
+            const remindersSection = document.getElementById('remindersSection');
+            
+            if (!todayCheckin?.has_checkin) {
+                remindersSection.innerHTML = `
+                    <div class="reminder-card">
+                        <span class="reminder-icon">🔔</span>
+                        <div>
+                            <strong>Daily Check-in Reminder</strong>
+                            <p>Take a few minutes to complete your daily check-in. Your consistency helps track your progress!</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Show reminder notification
+        function showReminderNotification(title, message) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: message,
+                    icon: '/icon.png'
+                });
+            }
+        }
+
+        // Show message
+        function showMessage(text, type = 'success') {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            
+            container.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login.html';
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    </script>
+</body>
+</html>
