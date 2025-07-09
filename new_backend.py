@@ -1,6 +1,6 @@
 """
 Enhanced Therapeutic Companion Backend
-With PostgreSQL, Authentication, and Role-Based Access
+With PostgreSQL, Authentication, Role-Based Access, and Client Reports
 """
 
 from flask import Flask, request, jsonify, send_file, session
@@ -13,6 +13,7 @@ import os
 import secrets
 import jwt
 from datetime import datetime, timedelta, date
+import pandas as pd
 from sqlalchemy import and_, or_, func
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -21,6 +22,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
+from io import BytesIO
 
 # Create Flask app
 app = Flask(__name__)
@@ -1034,6 +1036,441 @@ def get_client_progress():
                 'checkins': checkin_data,
                 'categories': category_data
             }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============= CLIENT REPORT ENDPOINTS =============
+
+@app.route('/api/client/generate-report/<week>', methods=['GET'])
+@require_auth(['client'])
+def client_generate_report(week):
+    """Generate client's own weekly report"""
+    try:
+        client = request.current_user.client
+        
+        # Parse week
+        year, week_num = week.split('-W')
+        year = int(year)
+        week_num = int(week_num)
+        
+        # Calculate week dates
+        jan1 = datetime(year, 1, 1)
+        days_to_monday = (7 - jan1.weekday()) % 7
+        if days_to_monday == 0:
+            days_to_monday = 7
+        first_monday = jan1 + timedelta(days=days_to_monday - 7)
+        week_start = first_monday + timedelta(weeks=week_num - 1)
+        week_end = week_start + timedelta(days=6)
+        
+        # Create Excel workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"Week {week_num} Report"
+        
+        # Header styles
+        header_font = Font(bold=True, size=14, color="FFFFFF")
+        header_fill = PatternFill(start_color="667EEA", end_color="667EEA", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Cell styles
+        cell_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Title
+        ws.merge_cells('A1:I1')
+        title_cell = ws['A1']
+        title_cell.value = f"Weekly Progress Report - Week {week_num}, {year}"
+        title_cell.font = Font(bold=True, size=16)
+        title_cell.alignment = header_alignment
+        
+        # Client info
+        ws['A3'] = "Client ID:"
+        ws['B3'] = client.client_serial
+        ws['A4'] = "Week:"
+        ws['B4'] = f"{week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')}"
+        ws['A5'] = "Generated:"
+        ws['B5'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+        
+        # Headers
+        headers = ['Date', 'Day', 'Time', 'Emotional (1-5)', 'Emotional Notes', 
+                   'Medication', 'Medication Notes', 'Activity (1-5)', 'Activity Notes']
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=7, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+        
+        # Get check-ins for the week
+        checkins = client.checkins.filter(
+            DailyCheckin.checkin_date.between(week_start.date(), week_end.date())
+        ).order_by(DailyCheckin.checkin_date).all()
+        
+        # Populate data
+        row = 8
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        
+        for i in range(7):
+            current_date = week_start + timedelta(days=i)
+            checkin = next((c for c in checkins if c.checkin_date == current_date.date()), None)
+            
+            ws.cell(row=row, column=1).value = current_date.strftime('%Y-%m-%d')
+            ws.cell(row=row, column=2).value = days[i]
+            
+            if checkin:
+                ws.cell(row=row, column=3).value = checkin.checkin_time.strftime('%H:%M')
+                ws.cell(row=row, column=4).value = checkin.emotional_value
+                ws.cell(row=row, column=5).value = checkin.emotional_notes or ''
+                
+                # Medication formatting
+                med_cell = ws.cell(row=row, column=6)
+                if checkin.medication_value == 0:
+                    med_cell.value = "N/A"
+                elif checkin.medication_value == 1:
+                    med_cell.value = "No"
+                elif checkin.medication_value == 3:
+                    med_cell.value = "Partial"
+                elif checkin.medication_value == 5:
+                    med_cell.value = "Yes"
+                
+                ws.cell(row=row, column=7).value = checkin.medication_notes or ''
+                ws.cell(row=row, column=8).value = checkin.activity_value
+                ws.cell(row=row, column=9).value = checkin.activity_notes or ''
+                
+                # Color coding for ratings
+                emotional_cell = ws.cell(row=row, column=4)
+                if checkin.emotional_value:
+                    if checkin.emotional_value >= 4:
+                        emotional_cell.fill = PatternFill(start_color="C8E6C9", end_color="C8E6C9", fill_type="solid")
+                    elif checkin.emotional_value == 3:
+                        emotional_cell.fill = PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid")
+                    else:
+                        emotional_cell.fill = PatternFill(start_color="FFCDD2", end_color="FFCDD2", fill_type="solid")
+                
+                activity_cell = ws.cell(row=row, column=8)
+                if checkin.activity_value:
+                    if checkin.activity_value >= 4:
+                        activity_cell.fill = PatternFill(start_color="C8E6C9", end_color="C8E6C9", fill_type="solid")
+                    elif checkin.activity_value == 3:
+                        activity_cell.fill = PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid")
+                    else:
+                        activity_cell.fill = PatternFill(start_color="FFCDD2", end_color="FFCDD2", fill_type="solid")
+            else:
+                ws.cell(row=row, column=3).value = "No check-in"
+                ws.cell(row=row, column=3).font = Font(italic=True, color="999999")
+            
+            # Apply borders
+            for col in range(1, 10):
+                ws.cell(row=row, column=col).border = cell_border
+            
+            row += 1
+        
+        # Summary section
+        row += 2
+        ws.cell(row=row, column=1).value = "WEEKLY SUMMARY"
+        ws.cell(row=row, column=1).font = Font(bold=True, size=12)
+        
+        row += 1
+        total_checkins = len(checkins)
+        ws.cell(row=row, column=1).value = "Total Check-ins:"
+        ws.cell(row=row, column=2).value = f"{total_checkins}/7"
+        
+        if total_checkins > 0:
+            # Average emotional rating
+            avg_emotional = sum(c.emotional_value for c in checkins if c.emotional_value) / total_checkins
+            row += 1
+            ws.cell(row=row, column=1).value = "Average Emotional Rating:"
+            ws.cell(row=row, column=2).value = f"{avg_emotional:.1f}/5"
+            
+            # Medication adherence
+            med_adherent = sum(1 for c in checkins if c.medication_value == 5)
+            row += 1
+            ws.cell(row=row, column=1).value = "Medication Adherence:"
+            ws.cell(row=row, column=2).value = f"{med_adherent}/{total_checkins} days"
+            
+            # Average activity
+            avg_activity = sum(c.activity_value for c in checkins if c.activity_value) / total_checkins
+            row += 1
+            ws.cell(row=row, column=1).value = "Average Activity Level:"
+            ws.cell(row=row, column=2).value = f"{avg_activity:.1f}/5"
+        
+        # Goals section if any
+        weekly_goals = client.goals.filter_by(week_start=week_start.date()).all()
+        if weekly_goals:
+            row += 2
+            ws.cell(row=row, column=1).value = "WEEKLY GOALS"
+            ws.cell(row=row, column=1).font = Font(bold=True, size=12)
+            
+            for goal in weekly_goals:
+                row += 1
+                ws.cell(row=row, column=1).value = f"• {goal.goal_text}"
+                
+                # Goal completions
+                completions = goal.completions.filter(
+                    GoalCompletion.completion_date.between(week_start.date(), week_end.date())
+                ).all()
+                completed_days = sum(1 for c in completions if c.completed)
+                ws.cell(row=row, column=3).value = f"Completed: {completed_days}/7 days"
+        
+        # Adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Generate filename
+        filename = f"my_therapy_report_{client.client_serial}_week_{week_num}_{year}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/client/email-report', methods=['POST'])
+@require_auth(['client'])
+def client_email_report():
+    """Prepare email report for client to send to therapist"""
+    try:
+        client = request.current_user.client
+        data = request.json
+        week = data.get('week')
+        
+        if not week:
+            return jsonify({'error': 'Week is required'}), 400
+        
+        # Parse week
+        year, week_num = week.split('-W')
+        year = int(year)
+        week_num = int(week_num)
+        
+        # Calculate week dates
+        jan1 = datetime(year, 1, 1)
+        days_to_monday = (7 - jan1.weekday()) % 7
+        if days_to_monday == 0:
+            days_to_monday = 7
+        first_monday = jan1 + timedelta(days=days_to_monday - 7)
+        week_start = first_monday + timedelta(weeks=week_num - 1)
+        week_end = week_start + timedelta(days=6)
+        
+        # Get therapist info
+        therapist = client.therapist
+        therapist_email = therapist.user.email if therapist and therapist.user else "therapist@example.com"
+        therapist_name = therapist.name if therapist else "Therapist"
+        
+        # Get check-ins for the week
+        checkins = client.checkins.filter(
+            DailyCheckin.checkin_date.between(week_start.date(), week_end.date())
+        ).order_by(DailyCheckin.checkin_date).all()
+        
+        # Build email content
+        subject = f"Weekly Therapy Report - {client.client_serial} - Week {week_num}, {year}"
+        
+        content = f"""Dear {therapist_name},
+
+Here is my weekly progress report for {week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')}.
+
+CLIENT: {client.client_serial}
+WEEK: {week_num}, {year}
+CHECK-INS COMPLETED: {len(checkins)}/7
+
+DAILY CHECK-IN SUMMARY:
+"""
+        
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        
+        for i in range(7):
+            current_date = week_start + timedelta(days=i)
+            checkin = next((c for c in checkins if c.checkin_date == current_date.date()), None)
+            
+            content += f"\n{days[i]} ({current_date.strftime('%m/%d')}):\n"
+            
+            if checkin:
+                content += f"  ✓ Checked in at {checkin.checkin_time.strftime('%H:%M')}\n"
+                content += f"  - Emotional State: {checkin.emotional_value}/5"
+                if checkin.emotional_notes:
+                    content += f" (Notes: {checkin.emotional_notes})"
+                content += "\n"
+                
+                content += f"  - Medication: "
+                if checkin.medication_value == 0:
+                    content += "N/A"
+                elif checkin.medication_value == 1:
+                    content += "Not taken"
+                elif checkin.medication_value == 3:
+                    content += "Partially taken"
+                elif checkin.medication_value == 5:
+                    content += "Taken as prescribed"
+                if checkin.medication_notes:
+                    content += f" (Notes: {checkin.medication_notes})"
+                content += "\n"
+                
+                content += f"  - Physical Activity: {checkin.activity_value}/5"
+                if checkin.activity_notes:
+                    content += f" (Notes: {checkin.activity_notes})"
+                content += "\n"
+            else:
+                content += "  ✗ No check-in recorded\n"
+        
+        # Add summary
+        if checkins:
+            content += "\nWEEKLY SUMMARY:\n"
+            
+            total_checkins = len(checkins)
+            avg_emotional = sum(c.emotional_value for c in checkins if c.emotional_value) / total_checkins
+            med_adherent = sum(1 for c in checkins if c.medication_value == 5)
+            avg_activity = sum(c.activity_value for c in checkins if c.activity_value) / total_checkins
+            
+            content += f"- Completion Rate: {total_checkins}/7 days ({(total_checkins/7)*100:.0f}%)\n"
+            content += f"- Average Emotional Rating: {avg_emotional:.1f}/5\n"
+            content += f"- Medication Adherence: {med_adherent}/{total_checkins} days\n"
+            content += f"- Average Activity Level: {avg_activity:.1f}/5\n"
+        
+        # Add goals if any
+        weekly_goals = client.goals.filter_by(week_start=week_start.date()).all()
+        if weekly_goals:
+            content += "\nWEEKLY GOALS:\n"
+            for goal in weekly_goals:
+                completions = goal.completions.filter(
+                    GoalCompletion.completion_date.between(week_start.date(), week_end.date())
+                ).all()
+                completed_days = sum(1 for c in completions if c.completed)
+                content += f"- {goal.goal_text}: Completed {completed_days}/7 days\n"
+        
+        content += f"\nReport generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        content += "\nBest regards,\n"
+        content += f"Client {client.client_serial}"
+        
+        return jsonify({
+            'success': True,
+            'recipient': therapist_email,
+            'subject': subject,
+            'content': content,
+            'note': 'Copy this email content to send to your therapist'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/client/week-checkins/<week>', methods=['GET'])
+@require_auth(['client'])
+def get_client_week_checkins(week):
+    """Get client's check-ins for a specific week"""
+    try:
+        client = request.current_user.client
+        
+        # Parse week
+        year, week_num = week.split('-W')
+        year = int(year)
+        week_num = int(week_num)
+        
+        # Calculate week dates
+        jan1 = datetime(year, 1, 1)
+        days_to_monday = (7 - jan1.weekday()) % 7
+        if days_to_monday == 0:
+            days_to_monday = 7
+        first_monday = jan1 + timedelta(days=days_to_monday - 7)
+        week_start = first_monday + timedelta(weeks=week_num - 1)
+        week_end = week_start + timedelta(days=6)
+        
+        # Get check-ins
+        checkins = client.checkins.filter(
+            DailyCheckin.checkin_date.between(week_start.date(), week_end.date())
+        ).all()
+        
+        # Format response
+        checkin_data = {}
+        for checkin in checkins:
+            checkin_data[checkin.checkin_date.isoformat()] = {
+                'time': checkin.checkin_time.strftime('%H:%M'),
+                'emotional': checkin.emotional_value,
+                'emotional_notes': checkin.emotional_notes,
+                'medication': checkin.medication_value,
+                'medication_notes': checkin.medication_notes,
+                'activity': checkin.activity_value,
+                'activity_notes': checkin.activity_notes
+            }
+        
+        return jsonify({
+            'success': True,
+            'week_start': week_start.date().isoformat(),
+            'week_end': week_end.date().isoformat(),
+            'checkins': checkin_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/client/goals/<week>', methods=['GET'])
+@require_auth(['client'])
+def get_client_week_goals(week):
+    """Get client's goals for a specific week"""
+    try:
+        client = request.current_user.client
+        
+        # Parse week
+        year, week_num = week.split('-W')
+        year = int(year)
+        week_num = int(week_num)
+        
+        # Calculate week start
+        jan1 = datetime(year, 1, 1)
+        days_to_monday = (7 - jan1.weekday()) % 7
+        if days_to_monday == 0:
+            days_to_monday = 7
+        first_monday = jan1 + timedelta(days=days_to_monday - 7)
+        week_start = first_monday + timedelta(weeks=week_num - 1)
+        
+        # Get goals for the week
+        goals = client.goals.filter_by(
+            week_start=week_start.date(),
+            is_active=True
+        ).all()
+        
+        # Format response
+        goals_data = []
+        for goal in goals:
+            # Get completions for the week
+            completions = {}
+            for i in range(7):
+                day = week_start.date() + timedelta(days=i)
+                completion = goal.completions.filter_by(completion_date=day).first()
+                completions[day.isoformat()] = completion.completed if completion else None
+            
+            goals_data.append({
+                'id': goal.id,
+                'text': goal.goal_text,
+                'week_start': goal.week_start.isoformat(),
+                'completions': completions
+            })
+        
+        return jsonify({
+            'success': True,
+            'goals': goals_data
         })
         
     except Exception as e:

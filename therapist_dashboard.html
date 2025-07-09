@@ -148,6 +148,36 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Access Code Section */
+        .access-code-section {
+            background: #e3f2fd;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .access-code-section h3 {
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+
+        .access-code-display {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .access-code {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1976d2;
+            font-family: monospace;
+        }
+
         /* Client List */
         .client-list-header {
             display: flex;
@@ -211,6 +241,11 @@
         .client-serial {
             font-weight: 600;
             color: #2c3e50;
+        }
+
+        .client-email {
+            color: #666;
+            font-size: 0.9rem;
         }
 
         .status-badge {
@@ -334,6 +369,32 @@
             border-radius: 8px;
             font-size: 1rem;
             resize: vertical;
+        }
+
+        /* Clarification Box */
+        .clarification-box {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .clarification-box h4 {
+            color: #856404;
+            margin-bottom: 0.5rem;
+        }
+
+        .clarification-box ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .clarification-box code {
+            background: #fff;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
         }
 
         /* Buttons */
@@ -583,6 +644,19 @@
         <div id="overview" class="tab-content active">
             <h2>Dashboard Overview</h2>
             
+            <!-- Access Code Section -->
+            <div class="access-code-section">
+                <h3>Your Client Access Code</h3>
+                <div class="access-code-display">
+                    <div class="access-code" id="accessCode">Loading...</div>
+                    <button class="btn btn-secondary btn-small" onclick="copyAccessCode()">📋 Copy</button>
+                </div>
+                <p style="color: #666; font-size: 0.875rem;">
+                    <strong>Share this code with new clients</strong> so they can register and be automatically linked to you.
+                    This is your license number that clients enter as their "Therapist Access Code" during registration.
+                </p>
+            </div>
+            
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon clients">👥</div>
@@ -631,7 +705,10 @@
             <div class="client-list-header">
                 <h2>Client Management</h2>
                 <div class="search-bar">
-                    <input type="text" class="search-input" placeholder="Search by serial or date..." onkeyup="filterClients()">
+                    <button class="btn btn-secondary btn-small" onclick="refreshClients()">
+                        🔄 Refresh List
+                    </button>
+                    <input type="text" class="search-input" placeholder="Search by serial or email..." onkeyup="filterClients()">
                     <select class="filter-select" onchange="filterClients()">
                         <option value="all">All Clients</option>
                         <option value="active">Active Only</option>
@@ -648,11 +725,11 @@
                     <thead>
                         <tr>
                             <th>Client Serial</th>
+                            <th>Email</th>
                             <th>Start Date</th>
                             <th>Status</th>
                             <th>Last Check-in</th>
                             <th>Week Completion</th>
-                            <th>Tracking</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -672,8 +749,20 @@
         <div id="add-client" class="tab-content">
             <h2>Add New Client</h2>
             
+            <!-- Clarification Box -->
+            <div class="clarification-box">
+                <h4>⚠️ Important: Two Ways to Add Clients</h4>
+                <ol>
+                    <li><strong>Client Self-Registration (Recommended):</strong> Share your access code <code id="accessCodeDisplay">Loading...</code> with clients. They register themselves and are automatically linked to you.</li>
+                    <li><strong>Therapist-Created Account:</strong> Use the form below to create an account for clients who cannot register themselves. You'll receive their login credentials.</li>
+                </ol>
+                <p style="margin: 0; color: #856404;"><strong>Note:</strong> If a client has already registered with your access code, they will appear in your client list automatically. Don't create a duplicate account.</p>
+            </div>
+            
             <div class="form-section">
-                <h3>Client Account Information</h3>
+                <h3>Create New Client Account</h3>
+                <p style="color: #dc3545; margin-bottom: 1rem;">⚠️ Only use this if the client hasn't registered yet!</p>
+                
                 <div class="form-group">
                     <label for="clientEmail">Email Address*</label>
                     <input type="email" id="clientEmail" class="form-input" placeholder="client@example.com" required>
@@ -794,6 +883,8 @@
                 // Update UI
                 document.getElementById('therapistName').textContent = therapistData.name;
                 document.getElementById('licenseInfo').textContent = `License: ${therapistData.license_number}`;
+                document.getElementById('accessCode').textContent = therapistData.license_number;
+                document.getElementById('accessCodeDisplay').textContent = therapistData.license_number;
                 document.getElementById('totalClients').textContent = data.statistics.total_clients;
                 document.getElementById('activeClients').textContent = data.statistics.active_clients;
                 document.getElementById('recentCheckins').textContent = data.statistics.recent_checkins;
@@ -806,11 +897,34 @@
             }
         }
 
+        // Copy access code function
+        function copyAccessCode() {
+            const accessCode = document.getElementById('accessCode').textContent;
+            navigator.clipboard.writeText(accessCode).then(() => {
+                showMessage('Access code copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const input = document.createElement('input');
+                input.value = accessCode;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showMessage('Access code copied!', 'success');
+            });
+        }
+
+        // Refresh clients
+        function refreshClients() {
+            showMessage('Refreshing client list...', 'success');
+            loadClients();
+            loadDashboard();
+        }
+
         // Load tracking categories
         async function loadTrackingCategories() {
             try {
                 // For now, hardcode the categories
-                // In production, this would fetch from the API
                 trackingCategories = [
                     { id: 1, name: 'Emotion Level', description: 'Overall emotional state', is_default: true },
                     { id: 2, name: 'Energy', description: 'Physical and mental energy levels', is_default: true },
@@ -864,7 +978,7 @@
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" style="text-align: center; color: #999;">
-                            No clients found. Add your first client to get started.
+                            No clients found. Share your access code (${therapistData?.license_number || 'Loading...'}) with clients to get started.
                         </td>
                     </tr>
                 `;
@@ -878,6 +992,7 @@
                 return `
                     <tr>
                         <td class="client-serial">${client.serial}</td>
+                        <td class="client-email">${client.email || 'No email'}</td>
                         <td>${new Date(client.start_date).toLocaleDateString()}</td>
                         <td>
                             <span class="status-badge ${client.is_active ? 'active' : 'inactive'}">
@@ -893,7 +1008,6 @@
                                 <span>${client.week_completion}</span>
                             </div>
                         </td>
-                        <td>${client.tracking_categories.join(', ')}</td>
                         <td>
                             <div class="action-buttons">
                                 <button class="btn btn-primary btn-small" onclick="viewClientDetails(${client.id})">View</button>
@@ -922,13 +1036,14 @@
                 const client = data.client;
                 
                 // Update modal
-                document.getElementById('modalClientSerial').textContent = `Client: ${client.serial}`;
+                document.getElementById('modalClientSerial').textContent = `Client: ${client.serial} (${client.email})`;
                 
                 const modalBody = document.getElementById('modalBody');
                 modalBody.innerHTML = `
                     <div class="form-section">
                         <h3>Client Information</h3>
                         <p><strong>Serial:</strong> ${client.serial}</p>
+                        <p><strong>Email:</strong> ${client.email}</p>
                         <p><strong>Start Date:</strong> ${new Date(client.start_date).toLocaleDateString()}</p>
                         <p><strong>Status:</strong> ${client.is_active ? 'Active' : 'Inactive'}</p>
                     </div>
@@ -1025,8 +1140,70 @@
 
         // Filter clients
         function filterClients() {
-            // TODO: Implement client filtering
-            console.log('Filter clients');
+            const searchInput = document.querySelector('.search-input').value.toLowerCase();
+            const filterSelect = document.querySelector('.filter-select').value;
+            
+            let filteredClients = clientsList;
+            
+            // Filter by status
+            if (filterSelect === 'active') {
+                filteredClients = filteredClients.filter(client => client.is_active);
+            } else if (filterSelect === 'inactive') {
+                filteredClients = filteredClients.filter(client => !client.is_active);
+            }
+            
+            // Filter by search
+            if (searchInput) {
+                filteredClients = filteredClients.filter(client => 
+                    client.serial.toLowerCase().includes(searchInput) ||
+                    (client.email && client.email.toLowerCase().includes(searchInput))
+                );
+            }
+            
+            // Update table with filtered results
+            const tbody = document.getElementById('clientTableBody');
+            if (filteredClients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #999;">
+                            No clients match your search criteria.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = filteredClients.map(client => {
+                    const completionRate = client.week_completion.split('/');
+                    const percentage = (parseInt(completionRate[0]) / parseInt(completionRate[1])) * 100;
+                    
+                    return `
+                        <tr>
+                            <td class="client-serial">${client.serial}</td>
+                            <td class="client-email">${client.email || 'No email'}</td>
+                            <td>${new Date(client.start_date).toLocaleDateString()}</td>
+                            <td>
+                                <span class="status-badge ${client.is_active ? 'active' : 'inactive'}">
+                                    ${client.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                            </td>
+                            <td>${client.last_checkin ? new Date(client.last_checkin).toLocaleDateString() : 'Never'}</td>
+                            <td>
+                                <div class="completion-rate">
+                                    <div class="completion-bar">
+                                        <div class="completion-fill" style="width: ${percentage}%"></div>
+                                    </div>
+                                    <span>${client.week_completion}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-small" onclick="viewClientDetails(${client.id})">View</button>
+                                    <button class="btn btn-secondary btn-small" onclick="addGoal(${client.id})">Add Goal</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
 
         // Add goal input
@@ -1180,7 +1357,7 @@
             const select = document.getElementById('reportClient');
             select.innerHTML = '<option value="">Select a client...</option>' +
                 clientsList.map(client => 
-                    `<option value="${client.id}">${client.serial} - Started ${new Date(client.start_date).toLocaleDateString()}</option>`
+                    `<option value="${client.id}">${client.serial} - ${client.email || 'No email'}</option>`
                 ).join('');
         }
 
@@ -1249,6 +1426,7 @@
         // Logout
         function logout() {
             localStorage.removeItem('authToken');
+            localStorage.removeItem('userRole');
             window.location.href = '/login.html';
         }
     </script>

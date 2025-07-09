@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -59,11 +60,55 @@
             background: rgba(255,255,255,0.3);
         }
 
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 0 2rem;
+            display: flex;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .nav-tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .nav-tab:hover {
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
         /* Main Container */
         .container {
             max-width: 1200px;
             margin: 2rem auto;
             padding: 0 1rem;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Welcome Message */
@@ -137,22 +182,96 @@
         .icon-goals { background: #fd79a8; }
         .icon-progress { background: #a29bfe; }
 
-        /* Check-in Status */
-        .checkin-status {
-            padding: 1rem;
+        /* Date Selection */
+        .date-selection {
+            background: #f8f9fa;
             border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .date-input {
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        /* Calendar View */
+        .calendar-view {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .week-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0.5rem;
             text-align: center;
-            margin-bottom: 1rem;
         }
 
-        .checkin-complete {
-            background: #d4edda;
-            color: #155724;
+        .day-cell:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
         }
 
-        .checkin-pending {
-            background: #fff3cd;
-            color: #856404;
+        .day-cell.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .day-cell.completed {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+
+        .day-cell.missed {
+            background: #ffebee;
+            border-color: #f44336;
+        }
+
+        .day-cell .day-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .day-cell .day-date {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .day-cell .status-icon {
+            font-size: 1rem;
+            margin-top: 0.25rem;
         }
 
         /* Daily Check-in Form */
@@ -252,15 +371,24 @@
             color: #999;
         }
 
-        /* Progress Chart Placeholder */
-        .progress-chart {
-            height: 300px;
-            background: #f8f9fa;
+        /* Reports Section */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
+            font-size: 1rem;
         }
 
         /* Buttons */
@@ -295,6 +423,11 @@
             background: #d0d0d0;
         }
 
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
         /* Notes Textarea */
         .notes-textarea {
             width: 100%;
@@ -310,22 +443,6 @@
         .notes-textarea:focus {
             outline: none;
             border-color: #667eea;
-        }
-
-        /* Reminders */
-        .reminder-card {
-            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
-            color: #333;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .reminder-icon {
-            font-size: 2rem;
         }
 
         /* Loading State */
@@ -382,12 +499,30 @@
                 text-align: center;
             }
 
+            .nav-tabs {
+                overflow-x: auto;
+                gap: 1rem;
+                padding: 0 1rem;
+            }
+
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
 
             .rating-scale {
                 justify-content: center;
+            }
+
+            .date-selection {
+                flex-direction: column;
+            }
+
+            .week-grid {
+                gap: 0.25rem;
+            }
+
+            .day-cell {
+                font-size: 0.875rem;
             }
         }
     </style>
@@ -403,150 +538,224 @@
         </div>
     </div>
 
-    <div class="container">
-        <!-- Welcome Message -->
-        <div class="welcome-card">
-            <h2 id="welcomeMessage">Welcome back!</h2>
-            <p id="encouragementMessage">Remember, every small step counts on your journey to wellness.</p>
-        </div>
+    <nav class="nav-tabs">
+        <div class="nav-tab active" onclick="showTab('overview')">Overview</div>
+        <div class="nav-tab" onclick="showTab('checkin')">Check-in</div>
+        <div class="nav-tab" onclick="showTab('goals')">Goals</div>
+        <div class="nav-tab" onclick="showTab('progress')">Progress</div>
+        <div class="nav-tab" onclick="showTab('reports')">Reports</div>
+    </nav>
 
+    <div class="container">
         <!-- Success/Error Messages -->
         <div id="messageContainer"></div>
 
-        <!-- Daily Check-in Status -->
-        <div id="checkinStatus" class="checkin-status checkin-pending">
-            <strong>Daily Check-in:</strong> <span id="checkinStatusText">Not completed yet today</span>
-        </div>
-
-        <!-- Dashboard Grid -->
-        <div class="dashboard-grid">
-            <!-- Today's Check-in Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Today's Check-in</h3>
-                    <div class="card-icon icon-emotion">😊</div>
-                </div>
-                <p>How are you feeling today? Take a moment to reflect on your emotional state, medication adherence, and physical activity.</p>
-                <button class="btn btn-primary" onclick="showCheckinForm()">Start Check-in</button>
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="welcome-card">
+                <h2 id="welcomeMessage">Welcome back!</h2>
+                <p id="encouragementMessage">Your journey to wellness continues. Every step counts!</p>
             </div>
 
-            <!-- Weekly Goals Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Weekly Goals</h3>
-                    <div class="card-icon icon-goals">🎯</div>
+            <!-- Calendar Week View -->
+            <div class="calendar-view">
+                <div class="week-navigation">
+                    <button class="btn btn-secondary btn-small" onclick="changeWeek(-1)">← Previous Week</button>
+                    <h3 id="currentWeekLabel">This Week</h3>
+                    <button class="btn btn-secondary btn-small" onclick="changeWeek(1)">Next Week →</button>
                 </div>
+                <div id="weekGrid" class="week-grid">
+                    <!-- Days will be populated here -->
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Quick Stats</h3>
+                        <div class="card-icon icon-progress">📊</div>
+                    </div>
+                    <div id="quickStats">
+                        <p>Loading stats...</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">This Week's Goals</h3>
+                        <div class="card-icon icon-goals">🎯</div>
+                    </div>
+                    <ul class="goal-list" id="overviewGoalsList">
+                        <li>Loading goals...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-in Tab -->
+        <div id="checkin" class="tab-content">
+            <h2>Daily Check-in</h2>
+            
+            <!-- Date Selection -->
+            <div class="date-selection">
+                <label for="checkinDate"><strong>Select Date:</strong></label>
+                <input type="date" id="checkinDate" class="date-input">
+                <button class="btn btn-secondary btn-small" onclick="setToday()">Today</button>
+                <span id="checkinDateStatus" style="margin-left: 1rem;"></span>
+            </div>
+
+            <div id="checkinForm" class="checkin-form">
+                <p style="color: #666; margin-bottom: 2rem;">Take a moment to reflect on your day. Your responses help track your progress.</p>
+
+                <!-- Emotional State -->
+                <div class="form-section">
+                    <h3><span class="rating-emoji">😊</span> How is your emotional state?</h3>
+                    <div class="rating-scale">
+                        <button type="button" class="rating-button" data-category="emotional" data-value="1" onclick="selectRating(this)">
+                            <span class="rating-emoji">😢</span>
+                            <span>1</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="emotional" data-value="2" onclick="selectRating(this)">
+                            <span class="rating-emoji">😟</span>
+                            <span>2</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="emotional" data-value="3" onclick="selectRating(this)">
+                            <span class="rating-emoji">😐</span>
+                            <span>3</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="emotional" data-value="4" onclick="selectRating(this)">
+                            <span class="rating-emoji">🙂</span>
+                            <span>4</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="emotional" data-value="5" onclick="selectRating(this)">
+                            <span class="rating-emoji">😄</span>
+                            <span>5</span>
+                        </button>
+                    </div>
+                    <textarea class="notes-textarea" id="emotionalNotes" placeholder="Any thoughts about your emotional state? (optional)"></textarea>
+                </div>
+
+                <!-- Medication Adherence -->
+                <div class="form-section">
+                    <h3><span class="rating-emoji">💊</span> Did you take your medication as prescribed?</h3>
+                    <div class="rating-scale">
+                        <button type="button" class="rating-button" data-category="medication" data-value="0" onclick="selectRating(this)">
+                            <span>N/A</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="medication" data-value="1" onclick="selectRating(this)">
+                            <span>No</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="medication" data-value="3" onclick="selectRating(this)">
+                            <span>Partial</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="medication" data-value="5" onclick="selectRating(this)">
+                            <span>Yes</span>
+                        </button>
+                    </div>
+                    <textarea class="notes-textarea" id="medicationNotes" placeholder="Any notes about medication? (optional)"></textarea>
+                </div>
+
+                <!-- Physical Activity -->
+                <div class="form-section">
+                    <h3><span class="rating-emoji">🏃</span> How active were you?</h3>
+                    <div class="rating-scale">
+                        <button type="button" class="rating-button" data-category="activity" data-value="1" onclick="selectRating(this)">
+                            <span class="rating-emoji">🛌</span>
+                            <span>1</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="activity" data-value="2" onclick="selectRating(this)">
+                            <span class="rating-emoji">🚶</span>
+                            <span>2</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="activity" data-value="3" onclick="selectRating(this)">
+                            <span class="rating-emoji">🚴</span>
+                            <span>3</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="activity" data-value="4" onclick="selectRating(this)">
+                            <span class="rating-emoji">🏃</span>
+                            <span>4</span>
+                        </button>
+                        <button type="button" class="rating-button" data-category="activity" data-value="5" onclick="selectRating(this)">
+                            <span class="rating-emoji">🏋️</span>
+                            <span>5</span>
+                        </button>
+                    </div>
+                    <textarea class="notes-textarea" id="activityNotes" placeholder="What activities did you do? (optional)"></textarea>
+                </div>
+
+                <!-- Additional Tracking Categories -->
+                <div id="additionalCategories"></div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="submitCheckin()">Submit Check-in</button>
+                    <button class="btn btn-secondary" onclick="clearCheckinForm()">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals Tab -->
+        <div id="goals" class="tab-content">
+            <h2>Weekly Goals</h2>
+            
+            <div class="date-selection">
+                <label for="goalsWeek"><strong>Select Week:</strong></label>
+                <input type="week" id="goalsWeek" class="date-input">
+                <button class="btn btn-secondary btn-small" onclick="loadWeeklyGoals()">Load Goals</button>
+            </div>
+
+            <div id="goalsContent">
+                <h3 id="goalsWeekLabel">This Week's Goals</h3>
                 <ul class="goal-list" id="goalsList">
-                    <li class="loading">Loading goals...</li>
+                    <li>Select a week to view goals</li>
                 </ul>
             </div>
+        </div>
 
-            <!-- Progress Card -->
+        <!-- Progress Tab -->
+        <div id="progress" class="tab-content">
+            <h2>Your Progress</h2>
+            
+            <div class="date-selection">
+                <label><strong>View Progress:</strong></label>
+                <select id="progressRange" class="form-input" style="width: auto;">
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+                <button class="btn btn-secondary btn-small" onclick="loadProgress()">Update</button>
+            </div>
+
+            <div id="progressContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading progress data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <h2>Generate Reports</h2>
+            
             <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Your Progress</h3>
-                    <div class="card-icon icon-progress">📊</div>
+                <h3>Weekly Report</h3>
+                <p style="color: #666; margin-bottom: 1rem;">Generate a comprehensive report of your check-ins for any week.</p>
+                
+                <div class="form-group">
+                    <label for="reportWeek">Select Week:</label>
+                    <input type="week" id="reportWeek" class="form-input">
                 </div>
-                <div class="progress-chart" id="progressChart">
-                    <span>Progress visualization coming soon...</span>
+                
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="generateReport()">Generate Excel Report</button>
+                    <button class="btn btn-secondary" onclick="prepareEmailReport()">Prepare Email Report</button>
                 </div>
-                <button class="btn btn-secondary" onclick="viewDetailedProgress()">View Details</button>
-            </div>
-        </div>
-
-        <!-- Reminders Section -->
-        <div id="remindersSection">
-            <!-- Reminders will be dynamically added here -->
-        </div>
-
-        <!-- Daily Check-in Form (Hidden by default) -->
-        <div id="checkinForm" class="checkin-form" style="display: none;">
-            <h2>Daily Check-in</h2>
-            <p style="color: #666; margin-bottom: 2rem;">Take a moment to reflect on your day. Your responses help track your progress.</p>
-
-            <!-- Emotional State -->
-            <div class="form-section">
-                <h3><span class="rating-emoji">😊</span> How is your emotional state today?</h3>
-                <div class="rating-scale">
-                    <button type="button" class="rating-button" data-category="emotional" data-value="1" onclick="selectRating(this)">
-                        <span class="rating-emoji">😢</span>
-                        <span>1</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="emotional" data-value="2" onclick="selectRating(this)">
-                        <span class="rating-emoji">😟</span>
-                        <span>2</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="emotional" data-value="3" onclick="selectRating(this)">
-                        <span class="rating-emoji">😐</span>
-                        <span>3</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="emotional" data-value="4" onclick="selectRating(this)">
-                        <span class="rating-emoji">🙂</span>
-                        <span>4</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="emotional" data-value="5" onclick="selectRating(this)">
-                        <span class="rating-emoji">😄</span>
-                        <span>5</span>
-                    </button>
+                
+                <div id="reportStatus" style="margin-top: 2rem; display: none;">
+                    <h4>Report Status</h4>
+                    <div id="reportStatusContent"></div>
                 </div>
-                <textarea class="notes-textarea" id="emotionalNotes" placeholder="Any thoughts about your emotional state? (optional)"></textarea>
-            </div>
-
-            <!-- Medication Adherence -->
-            <div class="form-section">
-                <h3><span class="rating-emoji">💊</span> Did you take your medication as prescribed?</h3>
-                <div class="rating-scale">
-                    <button type="button" class="rating-button" data-category="medication" data-value="0" onclick="selectRating(this)">
-                        <span>N/A</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="medication" data-value="1" onclick="selectRating(this)">
-                        <span>No</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="medication" data-value="3" onclick="selectRating(this)">
-                        <span>Partial</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="medication" data-value="5" onclick="selectRating(this)">
-                        <span>Yes</span>
-                    </button>
-                </div>
-                <textarea class="notes-textarea" id="medicationNotes" placeholder="Any notes about medication? (optional)"></textarea>
-            </div>
-
-            <!-- Physical Activity -->
-            <div class="form-section">
-                <h3><span class="rating-emoji">🏃</span> How active were you today?</h3>
-                <div class="rating-scale">
-                    <button type="button" class="rating-button" data-category="activity" data-value="1" onclick="selectRating(this)">
-                        <span class="rating-emoji">🛌</span>
-                        <span>1</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="activity" data-value="2" onclick="selectRating(this)">
-                        <span class="rating-emoji">🚶</span>
-                        <span>2</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="activity" data-value="3" onclick="selectRating(this)">
-                        <span class="rating-emoji">🚴</span>
-                        <span>3</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="activity" data-value="4" onclick="selectRating(this)">
-                        <span class="rating-emoji">🏃</span>
-                        <span>4</span>
-                    </button>
-                    <button type="button" class="rating-button" data-category="activity" data-value="5" onclick="selectRating(this)">
-                        <span class="rating-emoji">🏋️</span>
-                        <span>5</span>
-                    </button>
-                </div>
-                <textarea class="notes-textarea" id="activityNotes" placeholder="What activities did you do? (optional)"></textarea>
-            </div>
-
-            <!-- Additional Tracking Categories -->
-            <div id="additionalCategories"></div>
-
-            <!-- Action Buttons -->
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <button class="btn btn-primary" onclick="submitCheckin()">Submit Check-in</button>
-                <button class="btn btn-secondary" onclick="hideCheckinForm()">Cancel</button>
             </div>
         </div>
     </div>
@@ -555,9 +764,10 @@
         // Global variables
         let authToken = localStorage.getItem('authToken');
         let clientData = null;
-        let todayCheckin = null;
         let trackingCategories = [];
         let weeklyGoals = [];
+        let currentWeekOffset = 0;
+        let selectedDate = new Date();
 
         // Check authentication
         if (!authToken) {
@@ -567,8 +777,8 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadDashboard();
-            checkReminders();
-            setInterval(checkReminders, 60000); // Check every minute
+            setCurrentWeek();
+            setToday();
         });
 
         // Load dashboard data
@@ -590,12 +800,11 @@
 
                 const data = await response.json();
                 clientData = data.client;
-                todayCheckin = data.today;
                 trackingCategories = data.tracking_categories;
                 weeklyGoals = data.weekly_goals;
 
                 updateUI();
-                loadProgress();
+                loadWeekView();
             } catch (error) {
                 showMessage('Error loading dashboard: ' + error.message, 'error');
             }
@@ -606,19 +815,7 @@
             // Update client info
             document.getElementById('clientSerial').textContent = `Client ID: ${clientData.serial}`;
 
-            // Update check-in status
-            const statusDiv = document.getElementById('checkinStatus');
-            const statusText = document.getElementById('checkinStatusText');
-            
-            if (todayCheckin.has_checkin) {
-                statusDiv.className = 'checkin-status checkin-complete';
-                statusText.textContent = 'Completed today! Great job! 🎉';
-            } else {
-                statusDiv.className = 'checkin-status checkin-pending';
-                statusText.textContent = 'Not completed yet today';
-            }
-
-            // Update welcome message with personalized greeting
+            // Update welcome message
             const hour = new Date().getHours();
             let greeting = 'Welcome back';
             let encouragement = '';
@@ -637,64 +834,155 @@
             document.getElementById('welcomeMessage').textContent = `${greeting}!`;
             document.getElementById('encouragementMessage').textContent = encouragement;
 
-            // Update goals
-            updateGoalsList();
+            // Update overview goals list
+            updateOverviewGoals();
 
-            // Show reminders
-            showReminders();
+            // Setup additional tracking categories
+            setupAdditionalCategories();
         }
 
-        // Update goals list
-        function updateGoalsList() {
-            const goalsList = document.getElementById('goalsList');
+        // Show tab
+        function showTab(tabName) {
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
             
-            if (weeklyGoals.length === 0) {
-                goalsList.innerHTML = '<li style="color: #999;">No goals set for this week</li>';
-                return;
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+            
+            // Load tab-specific content
+            if (tabName === 'progress') {
+                loadProgress();
+            } else if (tabName === 'goals') {
+                loadWeeklyGoals();
             }
+        }
 
-            goalsList.innerHTML = weeklyGoals.map(goal => {
-                const isCompleted = goal.today_completed === true;
-                return `
-                    <li class="goal-item ${isCompleted ? 'completed' : ''}">
-                        <input type="checkbox" 
-                               class="goal-checkbox" 
-                               ${isCompleted ? 'checked' : ''}
-                               ${goal.today_completed !== null ? 'disabled' : ''}
-                               onchange="toggleGoal(${goal.id}, this.checked)">
-                        <span class="goal-text">${goal.text}</span>
-                    </li>
+        // Calendar Week View Functions
+        function loadWeekView() {
+            const weekGrid = document.getElementById('weekGrid');
+            weekGrid.innerHTML = '';
+            
+            const startOfWeek = getStartOfWeek(currentWeekOffset);
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            // Update week label
+            const weekLabel = document.getElementById('currentWeekLabel');
+            const weekEnd = new Date(startOfWeek);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            if (currentWeekOffset === 0) {
+                weekLabel.textContent = 'This Week';
+            } else {
+                weekLabel.textContent = `${startOfWeek.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+            }
+            
+            // Create day cells
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startOfWeek);
+                date.setDate(date.getDate() + i);
+                
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                dayCell.onclick = () => selectDate(date);
+                
+                // Check if this date has a check-in
+                // This would need an API call to get check-in status
+                const isToday = date.toDateString() === new Date().toDateString();
+                const isPast = date < new Date() && !isToday;
+                
+                dayCell.innerHTML = `
+                    <div class="day-name">${days[date.getDay()]}</div>
+                    <div class="day-date">${date.getDate()}</div>
+                    <div class="status-icon">${isToday ? '📍' : ''}</div>
                 `;
-            }).join('');
+                
+                if (isToday) {
+                    dayCell.classList.add('selected');
+                }
+                
+                weekGrid.appendChild(dayCell);
+            }
+            
+            // Load check-in status for the week
+            loadWeekCheckinStatus(startOfWeek);
         }
 
-        // Toggle goal completion
-        async function toggleGoal(goalId, completed) {
+        async function loadWeekCheckinStatus(weekStart) {
             try {
-                // Update UI immediately
-                const goalItem = event.target.closest('.goal-item');
-                if (completed) {
-                    goalItem.classList.add('completed');
-                } else {
-                    goalItem.classList.remove('completed');
-                }
-
-                // This will be saved when the full check-in is submitted
-                // For now, just update local state
-                const goal = weeklyGoals.find(g => g.id === goalId);
-                if (goal) {
-                    goal.today_completed = completed;
-                }
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                // This would require a new API endpoint to get check-in status for a date range
+                // For now, we'll mark today if it has a check-in from the dashboard data
+                const dayCells = document.querySelectorAll('.day-cell');
+                dayCells.forEach((cell, index) => {
+                    const cellDate = new Date(weekStart);
+                    cellDate.setDate(cellDate.getDate() + index);
+                    
+                    // Mark completed days (would come from API)
+                    // For now, just showing the logic structure
+                    if (cellDate.toDateString() === new Date().toDateString() && clientData && clientData.today && clientData.today.has_checkin) {
+                        cell.classList.add('completed');
+                        cell.querySelector('.status-icon').textContent = '✅';
+                    }
+                });
             } catch (error) {
-                showMessage('Error updating goal: ' + error.message, 'error');
+                console.error('Error loading week check-in status:', error);
             }
         }
 
-        // Show check-in form
-        function showCheckinForm() {
-            document.getElementById('checkinForm').style.display = 'block';
+        function getStartOfWeek(weekOffset = 0) {
+            const date = new Date();
+            const day = date.getDay();
+            const diff = date.getDate() - day + (weekOffset * 7);
+            const start = new Date(date.setDate(diff));
+            start.setHours(0, 0, 0, 0);
+            return start;
+        }
+
+        function changeWeek(direction) {
+            currentWeekOffset += direction;
+            loadWeekView();
+        }
+
+        function selectDate(date) {
+            selectedDate = date;
+            document.getElementById('checkinDate').value = date.toISOString().split('T')[0];
+            showTab('checkin');
+            checkDateStatus(date);
+        }
+
+        // Check-in Functions
+        function setToday() {
+            const today = new Date();
+            document.getElementById('checkinDate').value = today.toISOString().split('T')[0];
+            checkDateStatus(today);
+        }
+
+        function checkDateStatus(date) {
+            const statusSpan = document.getElementById('checkinDateStatus');
+            const dateStr = date.toDateString();
+            const todayStr = new Date().toDateString();
             
-            // Add additional tracking categories
+            if (dateStr === todayStr) {
+                statusSpan.textContent = '(Today)';
+                statusSpan.style.color = '#667eea';
+            } else if (date < new Date()) {
+                statusSpan.textContent = '(Past date)';
+                statusSpan.style.color = '#999';
+            } else {
+                statusSpan.textContent = '(Future date)';
+                statusSpan.style.color = '#f44336';
+            }
+        }
+
+        function setupAdditionalCategories() {
             const additionalDiv = document.getElementById('additionalCategories');
             const additionalCategories = trackingCategories.filter(cat => 
                 !['Emotion Level', 'Medication', 'Physical Activity'].includes(cat.name)
@@ -719,17 +1007,8 @@
                     </div>
                 `).join('');
             }
-
-            // Scroll to form
-            document.getElementById('checkinForm').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // Hide check-in form
-        function hideCheckinForm() {
-            document.getElementById('checkinForm').style.display = 'none';
-        }
-
-        // Select rating
         function selectRating(button) {
             const category = button.dataset.category;
             
@@ -742,9 +1021,21 @@
             button.classList.add('selected');
         }
 
-        // Submit check-in
         async function submitCheckin() {
             try {
+                const checkinDate = document.getElementById('checkinDate').value;
+                
+                if (!checkinDate) {
+                    showMessage('Please select a date', 'error');
+                    return;
+                }
+                
+                // Check if future date
+                if (new Date(checkinDate) > new Date()) {
+                    showMessage('Cannot submit check-in for future dates', 'error');
+                    return;
+                }
+                
                 // Gather basic ratings
                 const emotionalValue = document.querySelector('.rating-button[data-category="emotional"].selected')?.dataset.value;
                 const medicationValue = document.querySelector('.rating-button[data-category="medication"].selected')?.dataset.value;
@@ -764,16 +1055,26 @@
                     }
                 });
 
-                // Gather goal completions
+                // Gather goal completions for the selected date
                 const goalCompletions = {};
                 weeklyGoals.forEach(goal => {
-                    if (goal.today_completed !== null) {
-                        goalCompletions[goal.id] = goal.today_completed;
+                    // Only include if the date falls within the goal's week
+                    const goalWeekStart = new Date(goal.week_start);
+                    const goalWeekEnd = new Date(goalWeekStart);
+                    goalWeekEnd.setDate(goalWeekEnd.getDate() + 6);
+                    
+                    const selectedDateObj = new Date(checkinDate);
+                    if (selectedDateObj >= goalWeekStart && selectedDateObj <= goalWeekEnd) {
+                        // Check if there's a checkbox for this goal
+                        const checkbox = document.querySelector(`#goal-${goal.id}`);
+                        if (checkbox) {
+                            goalCompletions[goal.id] = checkbox.checked;
+                        }
                     }
                 });
 
                 const checkinData = {
-                    date: new Date().toISOString().split('T')[0],
+                    date: checkinDate,
                     emotional_value: parseInt(emotionalValue),
                     emotional_notes: document.getElementById('emotionalNotes').value,
                     medication_value: parseInt(medicationValue),
@@ -797,19 +1098,92 @@
                     throw new Error('Failed to submit check-in');
                 }
 
-                showMessage('Check-in submitted successfully! Great job! 🎉', 'success');
-                hideCheckinForm();
+                showMessage('Check-in submitted successfully! 🎉', 'success');
+                clearCheckinForm();
                 
                 // Reload dashboard to update status
                 loadDashboard();
+                loadWeekView();
             } catch (error) {
                 showMessage('Error submitting check-in: ' + error.message, 'error');
             }
         }
 
-        // Load progress data
+        function clearCheckinForm() {
+            document.querySelectorAll('.rating-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelectorAll('.notes-textarea').forEach(textarea => {
+                textarea.value = '';
+            });
+        }
+
+        // Goals Functions
+        async function loadWeeklyGoals() {
+            const weekInput = document.getElementById('goalsWeek').value;
+            
+            if (!weekInput) {
+                setCurrentWeek();
+                return;
+            }
+            
+            // Parse week
+            const [year, weekNum] = weekInput.split('-W');
+            const weekStart = getWeekStart(parseInt(year), parseInt(weekNum));
+            
+            // Update label
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            document.getElementById('goalsWeekLabel').textContent = 
+                `Goals for ${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+            
+            // For now, show the goals from dashboard data if they match the week
+            // In production, this would fetch goals for the specific week
+            const goalsList = document.getElementById('goalsList');
+            
+            if (weeklyGoals.length === 0) {
+                goalsList.innerHTML = '<li style="color: #999;">No goals set for this week</li>';
+                return;
+            }
+            
+            goalsList.innerHTML = weeklyGoals.map(goal => {
+                return `
+                    <li class="goal-item">
+                        <input type="checkbox" 
+                               id="goal-${goal.id}"
+                               class="goal-checkbox">
+                        <span class="goal-text">${goal.text}</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function updateOverviewGoals() {
+            const goalsList = document.getElementById('overviewGoalsList');
+            
+            if (weeklyGoals.length === 0) {
+                goalsList.innerHTML = '<li style="color: #999;">No goals set for this week</li>';
+                return;
+            }
+            
+            goalsList.innerHTML = weeklyGoals.map(goal => {
+                const isCompleted = goal.today_completed === true;
+                return `
+                    <li class="goal-item ${isCompleted ? 'completed' : ''}">
+                        <span class="goal-text">${goal.text}</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // Progress Functions
         async function loadProgress() {
             try {
+                const days = document.getElementById('progressRange').value;
+                const progressContent = document.getElementById('progressContent');
+                
+                progressContent.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading progress data...</p></div>';
+                
                 const response = await fetch('/api/client/progress', {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
@@ -821,58 +1195,162 @@
                 }
 
                 const data = await response.json();
-                // TODO: Implement progress visualization
-                console.log('Progress data:', data);
-            } catch (error) {
-                console.error('Error loading progress:', error);
-            }
-        }
-
-        // View detailed progress
-        function viewDetailedProgress() {
-            // TODO: Implement detailed progress view
-            showMessage('Detailed progress view coming soon!', 'success');
-        }
-
-        // Check and show reminders
-        function checkReminders() {
-            const now = new Date();
-            const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-            
-            // Example reminder logic
-            if (!todayCheckin?.has_checkin && now.getHours() >= 20) {
-                showReminderNotification('Evening Check-in', "Don't forget to complete your daily check-in before bed!");
-            }
-        }
-
-        // Show reminders section
-        function showReminders() {
-            const remindersSection = document.getElementById('remindersSection');
-            
-            if (!todayCheckin?.has_checkin) {
-                remindersSection.innerHTML = `
-                    <div class="reminder-card">
-                        <span class="reminder-icon">🔔</span>
-                        <div>
-                            <strong>Daily Check-in Reminder</strong>
-                            <p>Take a few minutes to complete your daily check-in. Your consistency helps track your progress!</p>
-                        </div>
+                
+                // Display progress (simplified version)
+                progressContent.innerHTML = `
+                    <div class="card">
+                        <h3>Check-in Summary</h3>
+                        <p>Total check-ins: ${data.progress.checkins.length}</p>
+                        <p>Average emotional rating: ${calculateAverage(data.progress.checkins, 'emotional')}/5</p>
+                        <p>Medication adherence: ${calculateAdherence(data.progress.checkins)}%</p>
+                        <p>Average activity level: ${calculateAverage(data.progress.checkins, 'activity')}/5</p>
                     </div>
                 `;
+            } catch (error) {
+                document.getElementById('progressContent').innerHTML = 
+                    '<p style="color: #f44336;">Error loading progress data</p>';
             }
         }
 
-        // Show reminder notification
-        function showReminderNotification(title, message) {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(title, {
-                    body: message,
-                    icon: '/icon.png'
+        function calculateAverage(checkins, field) {
+            if (checkins.length === 0) return 0;
+            const sum = checkins.reduce((acc, checkin) => acc + (checkin[field] || 0), 0);
+            return (sum / checkins.length).toFixed(1);
+        }
+
+        function calculateAdherence(checkins) {
+            if (checkins.length === 0) return 0;
+            const adherent = checkins.filter(c => c.medication === 5).length;
+            return Math.round((adherent / checkins.length) * 100);
+        }
+
+        // Report Functions
+        async function generateReport() {
+            const week = document.getElementById('reportWeek').value;
+            
+            if (!week) {
+                showMessage('Please select a week', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/client/generate-report/${week}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
                 });
+                
+                if (response.ok) {
+                    // Get filename from response headers
+                    const contentDisposition = response.headers.get('content-disposition');
+                    const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+                    const filename = filenameMatch ? filenameMatch[1] : `client_report_${week}.xlsx`;
+                    
+                    // Download file
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    showReportStatus('success', 'Report generated and downloaded successfully!');
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Failed to generate report', 'error');
+                }
+            } catch (error) {
+                showMessage('Error generating report: ' + error.message, 'error');
             }
         }
 
-        // Show message
+        async function prepareEmailReport() {
+            const week = document.getElementById('reportWeek').value;
+            
+            if (!week) {
+                showMessage('Please select a week', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/client/email-report', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ week: week })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showReportStatus('info', `
+                        <h4>Email Report Preview</h4>
+                        <p><strong>To:</strong> ${result.recipient}</p>
+                        <p><strong>Subject:</strong> ${result.subject}</p>
+                        <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                            <pre style="white-space: pre-wrap; font-family: inherit;">${result.content}</pre>
+                        </div>
+                        <p style="margin-top: 1rem; color: #666;">
+                            <em>${result.note}</em>
+                        </p>
+                    `);
+                } else {
+                    showMessage(result.error || 'Failed to prepare email report', 'error');
+                }
+            } catch (error) {
+                showMessage('Error preparing email report: ' + error.message, 'error');
+            }
+        }
+
+        function showReportStatus(type, content) {
+            const statusDiv = document.getElementById('reportStatus');
+            const statusContent = document.getElementById('reportStatusContent');
+            
+            statusDiv.style.display = 'block';
+            statusContent.innerHTML = content;
+            
+            if (type === 'success') {
+                statusContent.style.color = '#155724';
+            } else if (type === 'error') {
+                statusContent.style.color = '#721c24';
+            } else {
+                statusContent.style.color = '#333';
+            }
+        }
+
+        // Utility Functions
+        function setCurrentWeek() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const week = getWeekNumber(now);
+            document.getElementById('reportWeek').value = `${year}-W${week.toString().padStart(2, '0')}`;
+            document.getElementById('goalsWeek').value = `${year}-W${week.toString().padStart(2, '0')}`;
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function getWeekStart(year, weekNum) {
+            const jan1 = new Date(year, 0, 1);
+            const days = (weekNum - 1) * 7;
+            const weekStart = new Date(jan1.setDate(jan1.getDate() + days));
+            const dayOfWeek = weekStart.getDay();
+            if (dayOfWeek !== 0) {
+                weekStart.setDate(weekStart.getDate() - dayOfWeek);
+            }
+            return weekStart;
+        }
+
         function showMessage(text, type = 'success') {
             const container = document.getElementById('messageContainer');
             const messageDiv = document.createElement('div');
@@ -886,16 +1364,15 @@
             }, 5000);
         }
 
-        // Logout
         function logout() {
             localStorage.removeItem('authToken');
             window.location.href = '/login.html';
         }
 
-        // Request notification permission
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
+        // Set date input event listener
+        document.getElementById('checkinDate').addEventListener('change', function() {
+            checkDateStatus(new Date(this.value));
+        });
     </script>
 </body>
 </html>
