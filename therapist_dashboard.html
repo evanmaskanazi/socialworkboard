@@ -509,6 +509,12 @@
             font-weight: 500;
         }
 
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
         .message-content {
             flex: 1;
         }
@@ -1283,7 +1289,7 @@
                 ).join('');
         }
 
-        // Generate Excel report - UPDATED
+        // Generate Excel report
         async function generateReport() {
             const clientId = document.getElementById('reportClient').value;
             const week = document.getElementById('reportWeek').value;
@@ -1330,17 +1336,19 @@
             }
         }
 
-        // Prepare email report - NEW
+        // Prepare email report - FIXED
         async function prepareEmailReport() {
             const clientId = document.getElementById('reportClient').value;
             const week = document.getElementById('reportWeek').value;
             
             if (!clientId || !week) {
-                showMessage('Please select client and week', 'error');
+                showMessage('Please select both client and week', 'error');
                 return;
             }
             
             try {
+                showMessage('Preparing email report...', 'info');
+                
                 const response = await fetch('/api/therapist/email-report', {
                     method: 'POST',
                     headers: {
@@ -1348,7 +1356,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        client_id: clientId,
+                        client_id: parseInt(clientId),
                         week: week
                     })
                 });
@@ -1367,7 +1375,7 @@
                             <p><strong>To:</strong> ${result.recipient || 'Your email'}</p>
                             <p><strong>Subject:</strong> ${result.subject}</p>
                             <div style="margin-top: 1rem;">
-                                <pre>${result.content}</pre>
+                                <pre>${result.content || result.email_content}</pre>
                             </div>
                             <p style="margin-top: 1rem; color: #666;">
                                 <em>${result.note || 'Copy this content to send via your email client'}</em>
@@ -1375,7 +1383,7 @@
                         </div>
                     `;
                     
-                    showMessage('Email report prepared successfully!', 'success');
+                    showMessage('Email report prepared! Review the preview below.', 'success');
                 } else {
                     showMessage(result.error || 'Failed to prepare email report', 'error');
                 }
@@ -1450,4 +1458,3 @@
     </script>
 </body>
 </html>
-
