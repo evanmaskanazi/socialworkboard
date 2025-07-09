@@ -11,6 +11,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from functools import wraps
 import os
+from pathlib import Path
 import secrets
 import jwt
 from datetime import datetime, timedelta, date
@@ -26,6 +27,10 @@ from io import BytesIO
 
 # Create Flask app
 app = Flask(__name__)
+
+BASE_DIR = Path(__file__).resolve().parent
+app.static_folder = BASE_DIR
+app.template_folder = BASE_DIR
 
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
@@ -45,6 +50,22 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('SYSTEM_EMAIL')
 app.config['MAIL_PASSWORD'] = os.environ.get('SYSTEM_EMAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('SYSTEM_EMAIL')
+
+
+# Database connection pooling - ADD THIS SECTION
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 5,
+    'pool_recycle': 300,  # Recycle connections after 5 minutes
+    'pool_pre_ping': True,  # Test connections before using them
+    'max_overflow': 10,
+    'connect_args': {
+        'connect_timeout': 10,
+        'options': '-c statement_timeout=30000'  # 30 second statement timeout
+    }
+}
+
+
+
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -318,38 +339,68 @@ def generate_client_serial():
 def index():
     """Serve the main HTML file"""
     try:
-        return send_file('index.html')
-    except FileNotFoundError:
-        return "index.html not found", 404
+        file_path = os.path.join(BASE_DIR, 'index.html')
+        if os.path.exists(file_path):
+            return send_file(file_path)
+        else:
+            app.logger.error(f"index.html not found at {file_path}")
+            return "index.html not found", 404
+    except Exception as e:
+        app.logger.error(f"Error serving index.html: {e}")
+        return f"Error: {str(e)}", 500
 
 
 @app.route('/login.html')
 def login_page():
     """Serve the login HTML file"""
     try:
-        return send_file('login.html')
-    except FileNotFoundError:
-        return "login.html not found", 404
+        file_path = os.path.join(BASE_DIR, 'login.html')
+        if os.path.exists(file_path):
+            return send_file(file_path)
+        else:
+            app.logger.error(f"login.html not found at {file_path}")
+            return "login.html not found", 404
+    except Exception as e:
+        app.logger.error(f"Error serving login.html: {e}")
+        return f"Error: {str(e)}", 500
 
 
 @app.route('/therapist-dashboard.html')
 def therapist_dashboard_page():
     """Serve the therapist dashboard HTML file"""
     try:
-        # Note: Authentication is handled client-side
-        return send_file('therapist_dashboard.html')
-    except FileNotFoundError:
-        return "therapist_dashboard.html not found", 404
+        file_path = os.path.join(BASE_DIR, 'therapist_dashboard.html')
+        if os.path.exists(file_path):
+            return send_file(file_path)
+        else:
+            # Try alternative filename
+            alt_path = os.path.join(BASE_DIR, 'therapist-dashboard.html')
+            if os.path.exists(alt_path):
+                return send_file(alt_path)
+            app.logger.error(f"therapist_dashboard.html not found at {file_path}")
+            return "therapist_dashboard.html not found", 404
+    except Exception as e:
+        app.logger.error(f"Error serving therapist_dashboard.html: {e}")
+        return f"Error: {str(e)}", 500
 
 
 @app.route('/client-dashboard.html')
 def client_dashboard_page():
     """Serve the client dashboard HTML file"""
     try:
-        # Note: Authentication is handled client-side
-        return send_file('client_dashboard.html')
-    except FileNotFoundError:
-        return "client_dashboard.html not found", 404
+        file_path = os.path.join(BASE_DIR, 'client_dashboard.html')
+        if os.path.exists(file_path):
+            return send_file(file_path)
+        else:
+            # Try alternative filename
+            alt_path = os.path.join(BASE_DIR, 'client-dashboard.html')
+            if os.path.exists(alt_path):
+                return send_file(alt_path)
+            app.logger.error(f"client_dashboard.html not found at {file_path}")
+            return "client_dashboard.html not found", 404
+    except Exception as e:
+        app.logger.error(f"Error serving client_dashboard.html: {e}")
+        return f"Error: {str(e)}", 500
 
 
 # ============= API ENDPOINTS =============
