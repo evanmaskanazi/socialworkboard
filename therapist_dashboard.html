@@ -1363,19 +1363,24 @@
                 
                 const result = await response.json();
                 
-                if (result.success) {
+                if (response.ok && result.success) {
                     // Show email preview
                     const statusDiv = document.getElementById('reportStatus');
                     const statusContent = document.getElementById('reportStatusContent');
                     statusDiv.style.display = 'block';
                     
+                    // Use email_content field (that's what the backend returns)
+                    const emailContent = result.email_content || result.content || 'No content available';
+                    const recipient = result.recipient || 'Not specified';
+                    const subject = result.subject || 'Weekly Therapy Report';
+                    
                     statusContent.innerHTML = `
                         <div class="form-section">
                             <h4>Email Report Preview</h4>
-                            <p><strong>To:</strong> ${result.recipient || 'Your email'}</p>
-                            <p><strong>Subject:</strong> ${result.subject}</p>
-                            <div style="margin-top: 1rem;">
-                                <pre>${result.content || result.email_content}</pre>
+                            <p><strong>To:</strong> ${recipient}</p>
+                            <p><strong>Subject:</strong> ${subject}</p>
+                            <div style="margin-top: 1rem; background: white; padding: 1rem; border-radius: 6px; border: 1px solid #e0e0e0;">
+                                <pre style="white-space: pre-wrap; font-family: inherit;">${emailContent}</pre>
                             </div>
                             <p style="margin-top: 1rem; color: #666;">
                                 <em>${result.note || 'Copy this content to send via your email client'}</em>
@@ -1385,9 +1390,12 @@
                     
                     showMessage('Email report prepared! Review the preview below.', 'success');
                 } else {
+                    // Hide status div if there's an error
+                    document.getElementById('reportStatus').style.display = 'none';
                     showMessage(result.error || 'Failed to prepare email report', 'error');
                 }
             } catch (error) {
+                document.getElementById('reportStatus').style.display = 'none';
                 showMessage('Error preparing email report: ' + error.message, 'error');
             }
         }
