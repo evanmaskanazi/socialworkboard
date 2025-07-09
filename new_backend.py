@@ -1,4 +1,3 @@
-
 """
 Enhanced Therapeutic Companion Backend
 With PostgreSQL, Authentication, and Role-Based Access
@@ -14,6 +13,7 @@ import os
 import secrets
 import jwt
 from datetime import datetime, timedelta, date
+import pandas as pd
 from sqlalchemy import and_, or_, func
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -281,12 +281,43 @@ def generate_client_serial():
         if not Client.query.filter_by(client_serial=serial).first():
             return serial
 
-# ============= PUBLIC ENDPOINTS =============
+# ============= HTML PAGE ROUTES =============
 
 @app.route('/')
 def index():
     """Serve the main HTML file"""
-    return send_file('index.html')
+    try:
+        return send_file('index.html')
+    except FileNotFoundError:
+        return "index.html not found", 404
+
+@app.route('/login.html')
+def login_page():
+    """Serve the login HTML file"""
+    try:
+        return send_file('login.html')
+    except FileNotFoundError:
+        return "login.html not found", 404
+
+@app.route('/therapist-dashboard.html')
+def therapist_dashboard_page():
+    """Serve the therapist dashboard HTML file"""
+    try:
+        # Note: Authentication is handled client-side
+        return send_file('therapist_dashboard.html')
+    except FileNotFoundError:
+        return "therapist_dashboard.html not found", 404
+
+@app.route('/client-dashboard.html')
+def client_dashboard_page():
+    """Serve the client dashboard HTML file"""
+    try:
+        # Note: Authentication is handled client-side
+        return send_file('client_dashboard.html')
+    except FileNotFoundError:
+        return "client_dashboard.html not found", 404
+
+# ============= API ENDPOINTS =============
 
 @app.route('/api/auth/register', methods=['POST'])
 def register():
@@ -1086,29 +1117,34 @@ def initialize_database():
         return
     
     _initialized = True
-    db.create_all()
     
-    # Add default tracking categories if not exist
-    if TrackingCategory.query.count() == 0:
-        default_categories = [
-            ('Emotion Level', 'Overall emotional state', True),
-            ('Energy', 'Physical and mental energy levels', True),
-            ('Social Activity', 'Engagement in social interactions', True),
-            ('Sleep Quality', 'Quality of sleep', False),
-            ('Anxiety Level', 'Level of anxiety experienced', False),
-            ('Motivation', 'Level of motivation and drive', False)
-        ]
+    try:
+        db.create_all()
         
-        for name, description, is_default in default_categories:
-            category = TrackingCategory(
-                name=name,
-                description=description,
-                is_default=is_default
-            )
-            db.session.add(category)
-        
-        db.session.commit()
-        print("Database initialized with default tracking categories")
+        # Add default tracking categories if not exist
+        if TrackingCategory.query.count() == 0:
+            default_categories = [
+                ('Emotion Level', 'Overall emotional state', True),
+                ('Energy', 'Physical and mental energy levels', True),
+                ('Social Activity', 'Engagement in social interactions', True),
+                ('Sleep Quality', 'Quality of sleep', False),
+                ('Anxiety Level', 'Level of anxiety experienced', False),
+                ('Motivation', 'Level of motivation and drive', False)
+            ]
+            
+            for name, description, is_default in default_categories:
+                category = TrackingCategory(
+                    name=name,
+                    description=description,
+                    is_default=is_default
+                )
+                db.session.add(category)
+            
+            db.session.commit()
+            print("Database initialized with default tracking categories")
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        _initialized = False
 
 # Initialize on first request (replaces @app.before_first_request)
 @app.before_request
