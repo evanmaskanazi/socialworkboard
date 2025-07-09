@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,17 +73,23 @@
         .tab-button {
             flex: 1;
             padding: 1rem;
-            background: none;
-            border: none;
             cursor: pointer;
+            border: none;
+            background: none;
             font-size: 1rem;
             color: #666;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
             transition: all 0.3s ease;
             position: relative;
         }
 
+        .tab-button:hover {
+            color: #4CAF50;
+        }
+
         .tab-button.active {
-            color: #667eea;
+            color: #4CAF50;
             font-weight: 600;
         }
 
@@ -93,7 +100,7 @@
             left: 0;
             right: 0;
             height: 2px;
-            background: #667eea;
+            background: #4CAF50;
         }
 
         .form-group {
@@ -118,44 +125,28 @@
 
         .form-input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
         }
 
-        .role-selector {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .role-option {
-            flex: 1;
-            padding: 1rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
+        .role-notice {
             text-align: center;
-            transition: all 0.3s ease;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
         }
 
-        .role-option:hover {
-            border-color: #667eea;
-        }
-
-        .role-option.selected {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .role-option h3 {
+        .role-notice h3 {
             color: #333;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
         }
 
-        .role-option p {
+        .role-notice p {
             color: #666;
-            font-size: 0.875rem;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
         }
 
         .btn {
@@ -170,13 +161,13 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
         }
 
         .btn-primary:disabled {
@@ -205,6 +196,12 @@
             border: 1px solid #f5c6cb;
         }
 
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
         @keyframes slideDown {
             from {
                 opacity: 0;
@@ -222,7 +219,7 @@
         }
 
         .forgot-password a {
-            color: #667eea;
+            color: #4CAF50;
             text-decoration: none;
             font-size: 0.875rem;
         }
@@ -243,6 +240,21 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            color: #0d47a1;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 0.5rem;
         }
 
         /* Responsive */
@@ -278,6 +290,11 @@
             
             <!-- Login Form -->
             <div id="loginForm" class="tab-content">
+                <div class="info-box">
+                    <strong>Welcome back!</strong>
+                    Therapists and clients can login here with their credentials.
+                </div>
+                
                 <form onsubmit="handleLogin(event)">
                     <div class="form-group">
                         <label class="form-label" for="loginEmail">Email</label>
@@ -301,74 +318,55 @@
             
             <!-- Registration Form -->
             <div id="registerForm" class="tab-content" style="display: none;">
+                <div class="role-notice">
+                    <h3>👨‍⚕️ Therapist Registration</h3>
+                    <p>Create your professional account to start managing clients.</p>
+                    <div style="background: #fff3cd; color: #856404; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; text-align: left;">
+                        <strong>Note for Clients:</strong> Client accounts must be created by your therapist. If you're a client, please use the Login tab with credentials provided by your therapist.
+                    </div>
+                </div>
+
                 <form onsubmit="handleRegister(event)">
                     <div class="form-group">
-                        <label class="form-label">I am a:</label>
-                        <div class="role-selector">
-                            <div class="role-option" onclick="selectRole('therapist')">
-                                <h3>👨‍⚕️ Therapist</h3>
-                                <p>Professional account</p>
-                            </div>
-                            <div class="role-option" onclick="selectRole('client')">
-                                <h3>😊 Client</h3>
-                                <p>Personal journey</p>
-                            </div>
-                        </div>
+                        <label class="form-label" for="therapistName">Full Name*</label>
+                        <input type="text" id="therapistName" class="form-input" required placeholder="Dr. Jane Smith">
                     </div>
                     
-                    <div id="therapistFields" style="display: none;">
-                        <div class="form-group">
-                            <label class="form-label" for="therapistName">Full Name*</label>
-                            <input type="text" id="therapistName" class="form-input" placeholder="Dr. Jane Smith">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="licenseNumber">License Number*</label>
-                            <input type="text" id="licenseNumber" class="form-input" placeholder="LIC123456">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="organization">Organization (Optional)</label>
-                            <input type="text" id="organization" class="form-input" placeholder="Mental Health Clinic">
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="licenseNumber">License Number*</label>
+                        <input type="text" id="licenseNumber" class="form-input" required placeholder="LIC123456">
+                        <small style="color: #666;">Must be unique - each license can only be registered once</small>
                     </div>
                     
-                    <div id="clientFields" style="display: none;">
-                        <div class="form-group">
-                            <label class="form-label" for="therapistCode">Therapist Access Code*</label>
-                            <input type="text" id="therapistCode" class="form-input" placeholder="Provided by your therapist">
-                            <small style="color: #666;">Ask your therapist for their access code to register</small>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="organization">Organization (Optional)</label>
+                        <input type="text" id="organization" class="form-input" placeholder="Mental Health Clinic">
                     </div>
                     
-                    <div id="commonFields" style="display: none;">
-                        <div class="form-group">
-                            <label class="form-label" for="registerEmail">Email*</label>
-                            <input type="email" id="registerEmail" class="form-input" required placeholder="your@email.com">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="registerPassword">Password*</label>
-                            <input type="password" id="registerPassword" class="form-input" required placeholder="At least 8 characters">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="confirmPassword">Confirm Password*</label>
-                            <input type="password" id="confirmPassword" class="form-input" required placeholder="Repeat password">
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary" id="registerBtn">
-                            <span id="registerBtnText">Create Account</span>
-                        </button>
+                    <div class="form-group">
+                        <label class="form-label" for="registerEmail">Email*</label>
+                        <input type="email" id="registerEmail" class="form-input" required placeholder="your@email.com">
                     </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="registerPassword">Password*</label>
+                        <input type="password" id="registerPassword" class="form-input" required placeholder="At least 8 characters">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">Confirm Password*</label>
+                        <input type="password" id="confirmPassword" class="form-input" required placeholder="Repeat password">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="registerBtn">
+                        <span id="registerBtnText">Create Therapist Account</span>
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 
     <script>
-        let selectedRole = null;
-
         // Show tab
         function showTab(tab) {
             // Update buttons
@@ -388,34 +386,6 @@
             
             // Clear messages
             clearMessages();
-        }
-
-        // Select role
-        function selectRole(role) {
-            selectedRole = role;
-            
-            // Update UI
-            document.querySelectorAll('.role-option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            event.currentTarget.classList.add('selected');
-            
-            // Show appropriate fields
-            document.getElementById('commonFields').style.display = 'block';
-            
-            if (role === 'therapist') {
-                document.getElementById('therapistFields').style.display = 'block';
-                document.getElementById('clientFields').style.display = 'none';
-                document.getElementById('therapistName').required = true;
-                document.getElementById('licenseNumber').required = true;
-                document.getElementById('therapistCode').required = false;
-            } else {
-                document.getElementById('therapistFields').style.display = 'none';
-                document.getElementById('clientFields').style.display = 'block';
-                document.getElementById('therapistName').required = false;
-                document.getElementById('licenseNumber').required = false;
-                document.getElementById('therapistCode').required = true;
-            }
         }
 
         // Handle login
@@ -468,14 +438,9 @@
             }
         }
 
-        // Handle registration
+        // Handle registration (therapists only)
         async function handleRegister(event) {
             event.preventDefault();
-            
-            if (!selectedRole) {
-                showMessage('Please select whether you are a therapist or client', 'error');
-                return;
-            }
             
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
@@ -491,21 +456,15 @@
                 return;
             }
             
-            // Prepare data
+            // Prepare therapist data
             const data = {
                 email,
                 password,
-                role: selectedRole
+                role: 'therapist',
+                name: document.getElementById('therapistName').value,
+                license_number: document.getElementById('licenseNumber').value,
+                organization: document.getElementById('organization').value || ''
             };
-            
-            if (selectedRole === 'therapist') {
-                data.name = document.getElementById('therapistName').value;
-                data.license_number = document.getElementById('licenseNumber').value;
-                data.organization = document.getElementById('organization').value;
-            } else {
-                // For demo purposes, we'll handle therapist code validation on the backend
-                data.therapist_code = document.getElementById('therapistCode').value;
-            }
             
             // Show loading
             const registerBtn = document.getElementById('registerBtn');
@@ -531,28 +490,30 @@
                     localStorage.setItem('authToken', result.token);
                     localStorage.setItem('userRole', result.user.role);
                     
-                    // Redirect
+                    // Redirect to therapist dashboard
                     setTimeout(() => {
-                        if (result.user.role === 'therapist') {
-                            window.location.href = '/therapist-dashboard.html';
-                        } else {
-                            window.location.href = '/client-dashboard.html';
-                        }
+                        window.location.href = '/therapist-dashboard.html';
                     }, 1500);
                 } else {
-                    showMessage(result.error || 'Registration failed', 'error');
+                    if (result.error && result.error.includes('license_number')) {
+                        showMessage('This license number is already registered. Please use a different one.', 'error');
+                    } else if (result.error && result.error.includes('Email already registered')) {
+                        showMessage('This email is already registered. Please use the login tab.', 'error');
+                    } else {
+                        showMessage(result.error || 'Registration failed', 'error');
+                    }
                 }
             } catch (error) {
                 showMessage('Network error. Please try again.', 'error');
             } finally {
                 registerBtn.disabled = false;
-                registerBtnText.textContent = 'Create Account';
+                registerBtnText.textContent = 'Create Therapist Account';
             }
         }
 
         // Show forgot password
         function showForgotPassword() {
-            showMessage('Password reset functionality coming soon!', 'success');
+            showMessage('Password reset functionality coming soon!', 'info');
         }
 
         // Show message

@@ -13,6 +13,7 @@ import os
 import secrets
 import jwt
 from datetime import datetime, timedelta, date
+import pandas as pd
 from sqlalchemy import and_, or_, func
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -36,6 +37,14 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('PRODUCTION', False)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Email configuration
+app.config['MAIL_SERVER'] = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('SYSTEM_EMAIL')
+app.config['MAIL_PASSWORD'] = os.environ.get('SYSTEM_EMAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('SYSTEM_EMAIL')
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -1065,6 +1074,708 @@ def client_generate_report(week):
         
         # Create Excel workbook
         wb = openpyxl.Workbook()
+        
+        # 1. Daily Check-ins Sheet
+        ws_checkins = wb.active
+        ws_checkins.title = "Daily Check-ins"
+        
+        # Header styles
+        header_font = Font(bold=True, size=12, color="FFFFFF")
+        header_fill = PatternFill(start_color="2C3E50", end_color="2C3E50", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Cell styles
+        cell_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Title
+        ws_checkins.merge_cells('A1:J1')
+        title_cell = ws_checkins['A1']
+        title_cell.value = f"Weekly Progress Report - Client {client.client_serial}"
+        title_cell.font = Font(bold=True, size=16)
+        title_cell.alignment = header_alignment
+        
+        # Week info
+        ws_checkins.merge_cells('A2:J2')
+        week_cell = ws_checkins['A2']
+        week_cell.value = f"Week {week_num}, {year} ({week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')})"
+        week_cell.font = Font(size=14)
+        week_cell.alignment = header_alignment
+        
+        # Headers
+        headers = ['Date', 'Day', 'Check-in Time', 'Emotional (1-5)', 'Emotional Notes', 
+                   'Medication', 'Medication Notes', 'Activity (1-5)', 'Activity Notes', 'Completion']
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws_checkins.cell(row=4, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+        
+        # Get check-ins for the week
+        checkins = client.checkins.filter(
+            DailyCheckin.checkin_date.between(week_start.date(), week_end.date())
+        ).order_by(DailyCheckin.checkin_date).all()
+        
+        # Color fills for ratings
+        excellent_fill = PatternFill(start_color="C8E6C9", end_color="C8E6C9", fill_type="solid")  # Green
+        good_fill = PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid")       # Yellow
+        poor_fill = PatternFill(start_color="FFCDD2", end_color="FFCDD2", fill_type="solid")       # Red
+        
+        # Populate daily check-ins
+        row = 5
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        checkins_completed = 0
+        
+        # Variables for summary statistics
+        emotional_values = []
+        medication_values = []
+        activity_values = []
+        
+        for i in range(7):
+            current_date = week_start + timedelta(days=i)
+            checkin = next((c for c in checkins if c.checkin_date == current_date.date()), None)
+            
+            ws_checkins.cell(row=row, column=1).value = current_date.strftime('%Y-%m-%d')
+            ws_checkins.cell(row=row, column=2).value = days[i]
+            
+            if checkin:
+                checkins_completed += 1
+                ws_checkins.cell(row=row, column=3).value = checkin.checkin_time.strftime('%H:%M')
+                
+                # Emotional rating with color coding
+                emotional_cell = ws_checkins.cell(row=row, column=4)
+                emotional_cell.value = checkin.emotional_value
+                if checkin.emotional_value:
+                    emotional_values.append(checkin.emotional_value)
+                    if checkin.emotional_value >= 4:
+                        emotional_cell.fill = excellent_fill
+                    elif checkin.emotional_value == 3:
+                        emotional_cell.fill = good_fill
+                    else:
+                        emotional_cell.fill = poor_fill
+                
+                ws_checkins.cell(row=row, column=5).value = checkin.emotional_notes or ''
+                
+                # Medication formatting
+                med_cell = ws_checkins.cell(row=row, column=6)
+                if checkin.medication_value == 0:
+                    med_cell.value = "N/A"
+                    med_cell.fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+                elif checkin.medication_value == 1:
+                    med_cell.value = "No"
+                    med_cell.fill = poor_fill
+                    medication_values.append(checkin.medication_value)
+                elif checkin.medication_value == 3:
+                    med_cell.value = "Partial"
+                    med_cell.fill = good_fill
+                    medication_values.append(checkin.medication_value)
+                elif checkin.medication_value == 5:
+                    med_cell.value = "Yes"
+                    med_cell.fill = excellent_fill
+                    medication_values.append(checkin.medication_value)
+                
+                ws_checkins.cell(row=row, column=7).value = checkin.medication_notes or ''
+                
+                # Activity rating with color coding
+                activity_cell = ws_checkins.cell(row=row, column=8)
+                activity_cell.value = checkin.activity_value
+                if checkin.activity_value:
+                    activity_values.append(checkin.activity_value)
+                    if checkin.activity_value >= 4:
+                        activity_cell.fill = excellent_fill
+                    elif checkin.activity_value == 3:
+                        activity_cell.fill = good_fill
+                    else:
+                        activity_cell.fill = poor_fill
+                
+                ws_checkins.cell(row=row, column=9).value = checkin.activity_notes or ''
+                ws_checkins.cell(row=row, column=10).value = "✓"
+                ws_checkins.cell(row=row, column=10).fill = excellent_fill
+            else:
+                ws_checkins.cell(row=row, column=3).value = "No check-in"
+                ws_checkins.cell(row=row, column=3).font = Font(italic=True, color="999999")
+                ws_checkins.cell(row=row, column=10).value = "✗"
+                ws_checkins.cell(row=row, column=10).fill = poor_fill
+            
+            # Apply borders to all cells
+            for col in range(1, 11):
+                ws_checkins.cell(row=row, column=col).border = cell_border
+            
+            row += 1
+        
+        # 2. Weekly Summary Sheet
+        ws_summary = wb.create_sheet("Weekly Summary")
+        
+        # Summary title
+        ws_summary.merge_cells('A1:E1')
+        summary_title = ws_summary['A1']
+        summary_title.value = "Weekly Summary Statistics"
+        summary_title.font = Font(bold=True, size=16)
+        summary_title.alignment = header_alignment
+        
+        # Summary headers
+        summary_headers = ['Metric', 'Value', 'Percentage', 'Rating', 'Notes']
+        for col, header in enumerate(summary_headers, 1):
+            cell = ws_summary.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+        
+        # Calculate statistics
+        summary_data = []
+        
+        # Check-in completion
+        completion_rate = (checkins_completed / 7) * 100
+        summary_data.append({
+            'metric': 'Check-in Completion',
+            'value': f"{checkins_completed}/7 days",
+            'percentage': f"{completion_rate:.1f}%",
+            'rating': 'Excellent' if completion_rate >= 80 else 'Good' if completion_rate >= 60 else 'Needs Improvement',
+            'notes': ''
+        })
+        
+        if checkins_completed > 0:
+            # Average emotional rating
+            if emotional_values:
+                avg_emotional = sum(emotional_values) / len(emotional_values)
+                summary_data.append({
+                    'metric': 'Average Emotional Rating',
+                    'value': f"{avg_emotional:.2f}/5",
+                    'percentage': f"{(avg_emotional/5)*100:.1f}%",
+                    'rating': 'Excellent' if avg_emotional >= 4 else 'Good' if avg_emotional >= 3 else 'Needs Support',
+                    'notes': ''
+                })
+            
+            # Medication adherence
+            if medication_values:
+                med_adherent = sum(1 for val in medication_values if val == 5)
+                adherence_rate = (med_adherent / len(medication_values)) * 100
+                summary_data.append({
+                    'metric': 'Medication Adherence',
+                    'value': f"{med_adherent}/{len(medication_values)} days",
+                    'percentage': f"{adherence_rate:.1f}%",
+                    'rating': 'Excellent' if adherence_rate >= 90 else 'Good' if adherence_rate >= 70 else 'Needs Improvement',
+                    'notes': ''
+                })
+            
+            # Average activity
+            if activity_values:
+                avg_activity = sum(activity_values) / len(activity_values)
+                summary_data.append({
+                    'metric': 'Average Activity Level',
+                    'value': f"{avg_activity:.2f}/5",
+                    'percentage': f"{(avg_activity/5)*100:.1f}%",
+                    'rating': 'Excellent' if avg_activity >= 4 else 'Good' if avg_activity >= 3 else 'Needs Encouragement',
+                    'notes': ''
+                })
+        
+        # Write summary data
+        row = 4
+        for data in summary_data:
+            ws_summary.cell(row=row, column=1).value = data['metric']
+            ws_summary.cell(row=row, column=2).value = data['value']
+            ws_summary.cell(row=row, column=3).value = data['percentage']
+            
+            rating_cell = ws_summary.cell(row=row, column=4)
+            rating_cell.value = data['rating']
+            if 'Excellent' in data['rating']:
+                rating_cell.fill = excellent_fill
+            elif 'Good' in data['rating']:
+                rating_cell.fill = good_fill
+            else:
+                rating_cell.fill = poor_fill
+            
+            ws_summary.cell(row=row, column=5).value = data['notes']
+            
+            # Apply borders
+            for col in range(1, 6):
+                ws_summary.cell(row=row, column=col).border = cell_border
+            
+            row += 1
+        
+        # 3. Weekly Goals Sheet
+        ws_goals = wb.create_sheet("Weekly Goals")
+        
+        # Goals title
+        ws_goals.merge_cells('A1:I1')
+        goals_title = ws_goals['A1']
+        goals_title.value = "Weekly Goals & Completion"
+        goals_title.font = Font(bold=True, size=16)
+        goals_title.alignment = header_alignment
+        
+        # Goals headers
+        goal_headers = ['Goal', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Completion Rate']
+        for col, header in enumerate(goal_headers[0:1], 1):
+            cell = ws_goals.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+            
+        for col, header in enumerate(goal_headers[1:8], 2):
+            cell = ws_goals.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+            
+        cell = ws_goals.cell(row=3, column=9)
+        cell.value = goal_headers[8]
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = cell_border
+        
+        # Get weekly goals
+        weekly_goals = client.goals.filter_by(
+            week_start=week_start.date(),
+            is_active=True
+        ).all()
+        
+        row = 4
+        for goal in weekly_goals:
+            ws_goals.cell(row=row, column=1).value = goal.goal_text
+            
+            # Get completions for each day
+            completions = goal.completions.filter(
+                GoalCompletion.completion_date.between(week_start.date(), week_end.date())
+            ).all()
+            
+            completed_days = 0
+            for day_idx in range(7):
+                current_date = week_start.date() + timedelta(days=day_idx)
+                completion = next((c for c in completions if c.completion_date == current_date), None)
+                
+                cell = ws_goals.cell(row=row, column=day_idx + 2)
+                if completion:
+                    if completion.completed:
+                        cell.value = "✓"
+                        cell.fill = excellent_fill
+                        completed_days += 1
+                    else:
+                        cell.value = "✗"
+                        cell.fill = poor_fill
+                else:
+                    cell.value = "-"
+                    cell.fill = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
+                
+                cell.alignment = Alignment(horizontal="center")
+                cell.border = cell_border
+            
+            # Completion rate
+            completion_rate = (completed_days / 7) * 100
+            rate_cell = ws_goals.cell(row=row, column=9)
+            rate_cell.value = f"{completed_days}/7 ({completion_rate:.0f}%)"
+            if completion_rate >= 80:
+                rate_cell.fill = excellent_fill
+            elif completion_rate >= 50:
+                rate_cell.fill = good_fill
+            else:
+                rate_cell.fill = poor_fill
+            rate_cell.border = cell_border
+            
+            # Apply borders to goal text
+            ws_goals.cell(row=row, column=1).border = cell_border
+            
+            row += 1
+        
+        # 4. Therapist Notes Sheet
+        ws_notes = wb.create_sheet("Therapist Notes")
+        
+        # Notes title
+        ws_notes.merge_cells('A1:D1')
+        notes_title = ws_notes['A1']
+        notes_title.value = "Therapist Notes & Missions"
+        notes_title.font = Font(bold=True, size=16)
+        notes_title.alignment = header_alignment
+        
+        # Notes headers
+        note_headers = ['Date', 'Type', 'Content', 'Status']
+        for col, header in enumerate(note_headers, 1):
+            cell = ws_notes.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+        
+        # Get therapist notes for the week
+        week_start_datetime = datetime.combine(week_start.date(), datetime.min.time())
+        week_end_datetime = datetime.combine(week_end.date(), datetime.max.time())
+        
+        notes = TherapistNote.query.filter(
+            TherapistNote.client_id == client_id,
+            TherapistNote.therapist_id == therapist.id,
+            TherapistNote.created_at.between(week_start_datetime, week_end_datetime)
+        ).order_by(TherapistNote.created_at).all()
+        
+        row = 4
+        for note in notes:
+            ws_notes.cell(row=row, column=1).value = note.created_at.strftime('%Y-%m-%d %H:%M')
+            
+            type_cell = ws_notes.cell(row=row, column=2)
+            if note.is_mission:
+                type_cell.value = "MISSION"
+                type_cell.font = Font(bold=True, color="E91E63")
+            else:
+                type_cell.value = note.note_type.title()
+            
+            ws_notes.cell(row=row, column=3).value = note.content
+            
+            status_cell = ws_notes.cell(row=row, column=4)
+            if note.is_mission:
+                if note.mission_completed:
+                    status_cell.value = "Completed"
+                    status_cell.fill = excellent_fill
+                else:
+                    status_cell.value = "Pending"
+                    status_cell.fill = good_fill
+            else:
+                status_cell.value = "-"
+            
+            # Apply borders
+            for col in range(1, 5):
+                ws_notes.cell(row=row, column=col).border = cell_border
+            
+            row += 1
+        
+        # 5. Additional Tracking Categories Sheet (if any)
+        additional_categories = []
+        for plan in client.tracking_plans.filter_by(is_active=True):
+            if plan.category.name not in ['Emotion Level', 'Medication', 'Physical Activity']:
+                additional_categories.append(plan.category)
+        
+        if additional_categories:
+            ws_tracking = wb.create_sheet("Additional Tracking")
+            
+            # Title
+            ws_tracking.merge_cells('A1:I1')
+            tracking_title = ws_tracking['A1']
+            tracking_title.value = "Additional Tracking Categories"
+            tracking_title.font = Font(bold=True, size=16)
+            tracking_title.alignment = header_alignment
+            
+            # Headers
+            tracking_headers = ['Date', 'Day'] + [cat.name for cat in additional_categories]
+            for col, header in enumerate(tracking_headers, 1):
+                cell = ws_tracking.cell(row=3, column=col)
+                cell.value = header
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                cell.border = cell_border
+            
+            # Data
+            row = 4
+            for i in range(7):
+                current_date = week_start + timedelta(days=i)
+                ws_tracking.cell(row=row, column=1).value = current_date.strftime('%Y-%m-%d')
+                ws_tracking.cell(row=row, column=2).value = days[i]
+                
+                # Get responses for each category
+                for col_idx, category in enumerate(additional_categories, 3):
+                    response = CategoryResponse.query.filter_by(
+                        client_id=client_id,
+                        category_id=category.id,
+                        response_date=current_date.date()
+                    ).first()
+                    
+                    cell = ws_tracking.cell(row=row, column=col_idx)
+                    if response:
+                        cell.value = response.value
+                        if response.value >= 4:
+                            cell.fill = excellent_fill
+                        elif response.value == 3:
+                            cell.fill = good_fill
+                        else:
+                            cell.fill = poor_fill
+                    else:
+                        cell.value = "-"
+                    
+                    cell.alignment = Alignment(horizontal="center")
+                    cell.border = cell_border
+                
+                # Apply borders
+                for col in range(1, len(tracking_headers) + 1):
+                    ws_tracking.cell(row=row, column=col).border = cell_border
+                
+                row += 1
+        
+        # Adjust column widths for all sheets
+        for ws in wb.worksheets:
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Generate filename
+        filename = f"therapy_report_{client.client_serial}_week_{week_num}_{year}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/therapist/email-report', methods=['POST'])
+@require_auth(['therapist'])
+def email_therapy_report():
+    """Send therapy report via email"""
+    try:
+        therapist = request.current_user.therapist
+        data = request.json
+        
+        client_id = data.get('client_id')
+        week = data.get('week')
+        recipient_email = data.get('recipient_email')
+        
+        if not all([client_id, week]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Verify client belongs to therapist
+        client = Client.query.filter_by(
+            id=client_id,
+            therapist_id=therapist.id
+        ).first()
+        
+        if not client:
+            return jsonify({'error': 'Client not found'}), 404
+        
+        # Parse week
+        year, week_num = week.split('-W')
+        year = int(year)
+        week_num = int(week_num)
+        
+        # Calculate week dates
+        jan1 = datetime(year, 1, 1)
+        days_to_monday = (7 - jan1.weekday()) % 7
+        if days_to_monday == 0:
+            days_to_monday = 7
+        first_monday = jan1 + timedelta(days=days_to_monday - 7)
+        week_start = first_monday + timedelta(weeks=week_num - 1)
+        week_end = week_start + timedelta(days=6)
+        
+        # Get check-ins for summary
+        checkins = client.checkins.filter(
+            DailyCheckin.checkin_date.between(week_start.date(), week_end.date())
+        ).order_by(DailyCheckin.checkin_date).all()
+        
+        checkins_completed = len(checkins)
+        
+        # Calculate summary statistics
+        avg_emotional = 0
+        adherence_rate = 0
+        avg_activity = 0
+        
+        if checkins_completed > 0:
+            emotional_values = [c.emotional_value for c in checkins if c.emotional_value]
+            if emotional_values:
+                avg_emotional = sum(emotional_values) / len(emotional_values)
+            
+            med_values = [c.medication_value for c in checkins if c.medication_value and c.medication_value > 0]
+            if med_values:
+                med_adherent = sum(1 for val in med_values if val == 5)
+                adherence_rate = (med_adherent / len(med_values)) * 100
+            
+            activity_values = [c.activity_value for c in checkins if c.activity_value]
+            if activity_values:
+                avg_activity = sum(activity_values) / len(activity_values)
+        
+        # Prepare email content
+        email_content = f"""
+Dear Colleague,
+
+Please find attached the weekly therapy report for client {client.client_serial}.
+
+Report Period: {week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')} (Week {week_num}, {year})
+
+Summary:
+- Check-ins completed: {checkins_completed}/7 days
+- Average emotional rating: {avg_emotional:.1f}/5
+- Medication adherence: {adherence_rate:.0f}%
+- Average activity level: {avg_activity:.1f}/5
+
+The attached Excel file contains:
+- Detailed daily check-ins with color-coded ratings
+- Weekly summary statistics
+- Goal completion tracking
+- Therapist notes and missions
+
+Please review the attached report and contact me if you have any questions.
+
+Best regards,
+{therapist.name}
+{therapist.organization or ''}
+        """
+        
+        # If no email configuration, return content for manual sending
+        if not app.config.get('MAIL_USERNAME'):
+            return jsonify({
+                'success': True,
+                'email_content': email_content.strip(),
+                'recipient': recipient_email or 'Not specified',
+                'subject': f"Weekly Therapy Report - Client {client.client_serial} - Week {week_num}, {year}",
+                'note': 'Email configuration not set up. Please copy this content and attach the downloaded Excel file to send manually.'
+            })
+        
+        # If email is configured, send it
+        try:
+            # First generate the Excel report using the same logic as generate_report
+            # (This is a simplified version - in production you'd refactor to share code)
+            
+            # Create Excel workbook
+            wb = openpyxl.Workbook()
+            # ... (Excel generation code would go here - same as in generate_report)
+            
+            # For now, we'll use the generate_report endpoint internally
+            with app.test_request_context():
+                # Set the current user for the internal request
+                request.current_user = therapist.user
+                request.user_id = therapist.user.id
+                request.user_role = 'therapist'
+                
+                # Generate the report
+                report_response = generate_report(client_id, week)
+                excel_buffer = BytesIO(report_response.get_data())
+            
+            # Create email
+            msg = MIMEMultipart()
+            msg['From'] = app.config['MAIL_USERNAME']
+            msg['To'] = recipient_email or therapist.user.email
+            msg['Subject'] = f"Weekly Therapy Report - Client {client.client_serial} - Week {week_num}, {year}"
+            
+            # Email body
+            msg.attach(MIMEText(email_content, 'plain'))
+            
+            # Attach Excel file
+            excel_attachment = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            excel_attachment.set_payload(excel_buffer.read())
+            encoders.encode_base64(excel_attachment)
+            excel_attachment.add_header(
+                'Content-Disposition',
+                f'attachment; filename=therapy_report_{client.client_serial}_week_{week_num}_{year}.xlsx'
+            )
+            msg.attach(excel_attachment)
+            
+            # Send email
+            server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
+            server.starttls()
+            server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            server.send_message(msg)
+            server.quit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Report sent successfully to {recipient_email or therapist.user.email}'
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to send email: {str(e)}',
+                'note': 'You can download the report and send it manually.'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============= HEALTH CHECK =============
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+# ============= INITIALIZATION =============
+
+# Flag to ensure single initialization
+_initialized = False
+
+def initialize_database():
+    """Initialize database with default data"""
+    global _initialized
+    if _initialized:
+        return
+    
+    _initialized = True
+    
+    try:
+        db.create_all()
+        
+        # Add default tracking categories if not exist
+        if TrackingCategory.query.count() == 0:
+            default_categories = [
+                ('Emotion Level', 'Overall emotional state', True),
+                ('Energy', 'Physical and mental energy levels', True),
+                ('Social Activity', 'Engagement in social interactions', True),
+                ('Sleep Quality', 'Quality of sleep', False),
+                ('Anxiety Level', 'Level of anxiety experienced', False),
+                ('Motivation', 'Level of motivation and drive', False)
+            ]
+            
+            for name, description, is_default in default_categories:
+                category = TrackingCategory(
+                    name=name,
+                    description=description,
+                    is_default=is_default
+                )
+                db.session.add(category)
+            
+            db.session.commit()
+            print("Database initialized with default tracking categories")
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        _initialized = False
+
+# Initialize on first request (replaces @app.before_first_request)
+@app.before_request
+def before_request():
+    initialize_database()
+
+# Don't initialize on import for production
+# Let init_db.py handle it during deployment
+if not os.environ.get('PRODUCTION'):
+    with app.app_context():
+        initialize_database()
+
+if __name__ == '__main__':
+    # Ensure database is created when running directly
+    with app.app_context():
+        db.create_all()
+        initialize_database()
+    
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=not os.environ.get('PRODUCTION'))
         ws = wb.active
         ws.title = f"Week {week_num} Report"
         
@@ -1480,7 +2191,7 @@ def get_client_week_goals(week):
 @app.route('/api/reports/generate/<int:client_id>/<week>', methods=['GET'])
 @require_auth(['therapist'])
 def generate_report(client_id, week):
-    """Generate weekly report"""
+    """Generate comprehensive weekly Excel report"""
     try:
         therapist = request.current_user.therapist
         
@@ -1504,29 +2215,638 @@ def generate_report(client_id, week):
         if days_to_monday == 0:
             days_to_monday = 7
         first_monday = jan1 + timedelta(days=days_to_monday - 7)
-        week_start = first_monday + timedelta(weeks=week_num)
+        week_start = first_monday + timedelta(weeks=week_num - 1)
+        week_end = week_start + timedelta(days=6)
         
-        # Create Excel report (similar to original implementation)
-        # ... (Excel generation code here)
+        # Create Excel workbook
+        wb = openpyxl.Workbook()
+	ws_checkins = wb.active
+        ws_checkins.title = "Daily Check-ins"
         
-        # For now, return summary data
-        week_data = {}
+        # Header styles
+        header_font = Font(bold=True, size=12, color="FFFFFF")
+        header_fill = PatternFill(start_color="2C3E50", end_color="2C3E50", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Cell styles
+        cell_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Title
+        ws_checkins.merge_cells('A1:J1')
+        title_cell = ws_checkins['A1']
+        title_cell.value = f"Weekly Progress Report - Client {client.client_serial}"
+        title_cell.font = Font(bold=True, size=16)
+        title_cell.alignment = header_alignment
+        
+        # Week info
+        ws_checkins.merge_cells('A2:J2')
+        week_cell = ws_checkins['A2']
+        week_cell.value = f"Week {week_num}, {year} ({week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')})"
+        week_cell.font = Font(size=14)
+        week_cell.alignment = header_alignment
+        
+        # Headers
+        headers = ['Date', 'Day', 'Check-in Time', 'Emotional (1-5)', 'Emotional Notes', 
+                   'Medication', 'Medication Notes', 'Activity (1-5)', 'Activity Notes', 'Completion']
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws_checkins.cell(row=4, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+        
+        # Get check-ins for the week
+        checkins = client.checkins.filter(
+            DailyCheckin.checkin_date.between(week_start.date(), week_end.date())
+        ).order_by(DailyCheckin.checkin_date).all()
+        
+        # Color fills for ratings
+        excellent_fill = PatternFill(start_color="C8E6C9", end_color="C8E6C9", fill_type="solid")  # Green
+        good_fill = PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid")       # Yellow
+        poor_fill = PatternFill(start_color="FFCDD2", end_color="FFCDD2", fill_type="solid")       # Red
+        
+        # Populate daily check-ins
+        row = 5
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        checkins_completed = 0
+        
+        # Variables for summary statistics
+        emotional_values = []
+        medication_values = []
+        activity_values = []
+        
         for i in range(7):
-            day = week_start + timedelta(days=i)
-            checkin = client.checkins.filter_by(checkin_date=day).first()
+            current_date = week_start + timedelta(days=i)
+            checkin = next((c for c in checkins if c.checkin_date == current_date.date()), None)
+            
+            ws_checkins.cell(row=row, column=1).value = current_date.strftime('%Y-%m-%d')
+            ws_checkins.cell(row=row, column=2).value = days[i]
+            
             if checkin:
-                week_data[day.isoformat()] = {
-                    'emotional': checkin.emotional_value,
-                    'medication': checkin.medication_value,
-                    'activity': checkin.activity_value
-                }
+                checkins_completed += 1
+                ws_checkins.cell(row=row, column=3).value = checkin.checkin_time.strftime('%H:%M')
+                
+                # Emotional rating with color coding
+                emotional_cell = ws_checkins.cell(row=row, column=4)
+                emotional_cell.value = checkin.emotional_value
+                if checkin.emotional_value:
+                    emotional_values.append(checkin.emotional_value)
+                    if checkin.emotional_value >= 4:
+                        emotional_cell.fill = excellent_fill
+                    elif checkin.emotional_value == 3:
+                        emotional_cell.fill = good_fill
+                    else:
+                        emotional_cell.fill = poor_fill
+                
+                ws_checkins.cell(row=row, column=5).value = checkin.emotional_notes or ''
+                
+                # Medication formatting
+                med_cell = ws_checkins.cell(row=row, column=6)
+                if checkin.medication_value == 0:
+                    med_cell.value = "N/A"
+                    med_cell.fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+                elif checkin.medication_value == 1:
+                    med_cell.value = "No"
+                    med_cell.fill = poor_fill
+                    medication_values.append(checkin.medication_value)
+                elif checkin.medication_value == 3:
+                    med_cell.value = "Partial"
+                    med_cell.fill = good_fill
+                    medication_values.append(checkin.medication_value)
+                elif checkin.medication_value == 5:
+                    med_cell.value = "Yes"
+                    med_cell.fill = excellent_fill
+                    medication_values.append(checkin.medication_value)
+                
+                ws_checkins.cell(row=row, column=7).value = checkin.medication_notes or ''
+                
+                # Activity rating with color coding
+                activity_cell = ws_checkins.cell(row=row, column=8)
+                activity_cell.value = checkin.activity_value
+                if checkin.activity_value:
+                    activity_values.append(checkin.activity_value)
+                    if checkin.activity_value >= 4:
+                        activity_cell.fill = excellent_fill
+                    elif checkin.activity_value == 3:
+                        activity_cell.fill = good_fill
+                    else:
+                        activity_cell.fill = poor_fill
+                
+                ws_checkins.cell(row=row, column=9).value = checkin.activity_notes or ''
+                ws_checkins.cell(row=row, column=10).value = "✓"
+                ws_checkins.cell(row=row, column=10).fill = excellent_fill
+            else:
+                ws_checkins.cell(row=row, column=3).value = "No check-in"
+                ws_checkins.cell(row=row, column=3).font = Font(italic=True, color="999999")
+                ws_checkins.cell(row=row, column=10).value = "✗"
+                ws_checkins.cell(row=row, column=10).fill = poor_fill
+            
+            # Apply borders to all cells
+            for col in range(1, 11):
+                ws_checkins.cell(row=row, column=col).border = cell_border
+            
+            row += 1
         
-        return jsonify({
-            'success': True,
-            'week_data': week_data,
-            'client_serial': client.client_serial
+        # 2. Weekly Summary Sheet
+        ws_summary = wb.create_sheet("Weekly Summary")
+        
+        # Summary title
+        ws_summary.merge_cells('A1:E1')
+        summary_title = ws_summary['A1']
+        summary_title.value = "Weekly Summary Statistics"
+        summary_title.font = Font(bold=True, size=16)
+        summary_title.alignment = header_alignment
+        
+        # Summary headers
+        summary_headers = ['Metric', 'Value', 'Percentage', 'Rating', 'Notes']
+        for col, header in enumerate(summary_headers, 1):
+            cell = ws_summary.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+        
+        # Calculate statistics
+        summary_data = []
+        
+        # Check-in completion
+        completion_rate = (checkins_completed / 7) * 100
+        summary_data.append({
+            'metric': 'Check-in Completion',
+            'value': f"{checkins_completed}/7 days",
+            'percentage': f"{completion_rate:.1f}%",
+            'rating': 'Excellent' if completion_rate >= 80 else 'Good' if completion_rate >= 60 else 'Needs Improvement',
+            'notes': ''
         })
         
+        if checkins_completed > 0:
+            # Average emotional rating
+            if emotional_values:
+                avg_emotional = sum(emotional_values) / len(emotional_values)
+                summary_data.append({
+                    'metric': 'Average Emotional Rating',
+                    'value': f"{avg_emotional:.2f}/5",
+                    'percentage': f"{(avg_emotional/5)*100:.1f}%",
+                    'rating': 'Excellent' if avg_emotional >= 4 else 'Good' if avg_emotional >= 3 else 'Needs Support',
+                    'notes': ''
+                })
+            
+            # Medication adherence
+            if medication_values:
+                med_adherent = sum(1 for val in medication_values if val == 5)
+                adherence_rate = (med_adherent / len(medication_values)) * 100
+                summary_data.append({
+                    'metric': 'Medication Adherence',
+                    'value': f"{med_adherent}/{len(medication_values)} days",
+                    'percentage': f"{adherence_rate:.1f}%",
+                    'rating': 'Excellent' if adherence_rate >= 90 else 'Good' if adherence_rate >= 70 else 'Needs Improvement',
+                    'notes': ''
+                })
+            
+            # Average activity
+            if activity_values:
+                avg_activity = sum(activity_values) / len(activity_values)
+                summary_data.append({
+                    'metric': 'Average Activity Level',
+                    'value': f"{avg_activity:.2f}/5",
+                    'percentage': f"{(avg_activity/5)*100:.1f}%",
+                    'rating': 'Excellent' if avg_activity >= 4 else 'Good' if avg_activity >= 3 else 'Needs Encouragement',
+                    'notes': ''
+                })
+        
+        # Write summary data
+        row = 4
+        for data in summary_data:
+            ws_summary.cell(row=row, column=1).value = data['metric']
+            ws_summary.cell(row=row, column=2).value = data['value']
+            ws_summary.cell(row=row, column=3).value = data['percentage']
+            
+            rating_cell = ws_summary.cell(row=row, column=4)
+            rating_cell.value = data['rating']
+            if 'Excellent' in data['rating']:
+                rating_cell.fill = excellent_fill
+            elif 'Good' in data['rating']:
+                rating_cell.fill = good_fill
+            else:
+                rating_cell.fill = poor_fill
+            
+            ws_summary.cell(row=row, column=5).value = data['notes']
+            
+            # Apply borders
+            for col in range(1, 6):
+                ws_summary.cell(row=row, column=col).border = cell_border
+            
+            row += 1
+        
+        # 3. Weekly Goals Sheet
+        ws_goals = wb.create_sheet("Weekly Goals")
+        
+        # Goals title
+        ws_goals.merge_cells('A1:I1')
+        goals_title = ws_goals['A1']
+        goals_title.value = "Weekly Goals & Completion"
+        goals_title.font = Font(bold=True, size=16)
+        goals_title.alignment = header_alignment
+        
+        # Goals headers
+        goal_headers = ['Goal', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Completion Rate']
+        for col, header in enumerate(goal_headers[0:1], 1):
+            cell = ws_goals.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+            
+        for col, header in enumerate(goal_headers[1:8], 2):
+            cell = ws_goals.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+            
+        cell = ws_goals.cell(row=3, column=9)
+        cell.value = goal_headers[8]
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = cell_border
+        
+        # Get weekly goals
+        weekly_goals = client.goals.filter_by(
+            week_start=week_start.date(),
+            is_active=True
+        ).all()
+        
+        row = 4
+        for goal in weekly_goals:
+            ws_goals.cell(row=row, column=1).value = goal.goal_text
+            
+            # Get completions for each day
+            completions = goal.completions.filter(
+                GoalCompletion.completion_date.between(week_start.date(), week_end.date())
+            ).all()
+            
+            completed_days = 0
+            for day_idx in range(7):
+                current_date = week_start.date() + timedelta(days=day_idx)
+                completion = next((c for c in completions if c.completion_date == current_date), None)
+                
+                cell = ws_goals.cell(row=row, column=day_idx + 2)
+                if completion:
+                    if completion.completed:
+                        cell.value = "✓"
+                        cell.fill = excellent_fill
+                        completed_days += 1
+                    else:
+                        cell.value = "✗"
+                        cell.fill = poor_fill
+                else:
+                    cell.value = "-"
+                    cell.fill = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
+                
+                cell.alignment = Alignment(horizontal="center")
+                cell.border = cell_border
+            
+            # Completion rate
+            completion_rate = (completed_days / 7) * 100
+            rate_cell = ws_goals.cell(row=row, column=9)
+            rate_cell.value = f"{completed_days}/7 ({completion_rate:.0f}%)"
+            if completion_rate >= 80:
+                rate_cell.fill = excellent_fill
+            elif completion_rate >= 50:
+                rate_cell.fill = good_fill
+            else:
+                rate_cell.fill = poor_fill
+            rate_cell.border = cell_border
+            
+            # Apply borders to goal text
+            ws_goals.cell(row=row, column=1).border = cell_border
+            
+            row += 1
+        
+        # 4. Therapist Notes Sheet
+        ws_notes = wb.create_sheet("Therapist Notes")
+        
+        # Notes title
+        ws_notes.merge_cells('A1:D1')
+        notes_title = ws_notes['A1']
+        notes_title.value = "Therapist Notes & Missions"
+        notes_title.font = Font(bold=True, size=16)
+        notes_title.alignment = header_alignment
+        
+        # Notes headers
+        note_headers = ['Date', 'Type', 'Content', 'Status']
+        for col, header in enumerate(note_headers, 1):
+            cell = ws_notes.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = cell_border
+        
+        # Get therapist notes for the week
+        week_start_datetime = datetime.combine(week_start.date(), datetime.min.time())
+        week_end_datetime = datetime.combine(week_end.date(), datetime.max.time())
+        
+        notes = TherapistNote.query.filter(
+            TherapistNote.client_id == client_id,
+            TherapistNote.therapist_id == therapist.id,
+            TherapistNote.created_at.between(week_start_datetime, week_end_datetime)
+        ).order_by(TherapistNote.created_at).all()
+        
+        row = 4
+        for note in notes:
+            ws_notes.cell(row=row, column=1).value = note.created_at.strftime('%Y-%m-%d %H:%M')
+            
+            type_cell = ws_notes.cell(row=row, column=2)
+            if note.is_mission:
+                type_cell.value = "MISSION"
+                type_cell.font = Font(bold=True, color="E91E63")
+            else:
+                type_cell.value = note.note_type.title()
+            
+            ws_notes.cell(row=row, column=3).value = note.content
+            
+            status_cell = ws_notes.cell(row=row, column=4)
+            if note.is_mission:
+                if note.mission_completed:
+                    status_cell.value = "Completed"
+                    status_cell.fill = excellent_fill
+                else:
+                    status_cell.value = "Pending"
+                    status_cell.fill = good_fill
+            else:
+                status_cell.value = "-"
+            
+            # Apply borders
+            for col in range(1, 5):
+                ws_notes.cell(row=row, column=col).border = cell_border
+            
+            row += 1
+        
+        # 5. Additional Tracking Categories Sheet (if any)
+        additional_categories = []
+        for plan in client.tracking_plans.filter_by(is_active=True):
+            if plan.category.name not in ['Emotion Level', 'Medication', 'Physical Activity']:
+                additional_categories.append(plan.category)
+        
+        if additional_categories:
+            ws_tracking = wb.create_sheet("Additional Tracking")
+            
+            # Title
+            ws_tracking.merge_cells('A1:I1')
+            tracking_title = ws_tracking['A1']
+            tracking_title.value = "Additional Tracking Categories"
+            tracking_title.font = Font(bold=True, size=16)
+            tracking_title.alignment = header_alignment
+            
+            # Headers
+            tracking_headers = ['Date', 'Day'] + [cat.name for cat in additional_categories]
+            for col, header in enumerate(tracking_headers, 1):
+                cell = ws_tracking.cell(row=3, column=col)
+                cell.value = header
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                cell.border = cell_border
+            
+            # Data
+            row = 4
+            for i in range(7):
+                current_date = week_start + timedelta(days=i)
+                ws_tracking.cell(row=row, column=1).value = current_date.strftime('%Y-%m-%d')
+                ws_tracking.cell(row=row, column=2).value = days[i]
+                
+                # Get responses for each category
+                for col_idx, category in enumerate(additional_categories, 3):
+                    response = CategoryResponse.query.filter_by(
+                        client_id=client_id,
+                        category_id=category.id,
+                        response_date=current_date.date()
+                    ).first()
+                    
+                    cell = ws_tracking.cell(row=row, column=col_idx)
+                    if response:
+                        cell.value = response.value
+                        if response.value >= 4:
+                            cell.fill = excellent_fill
+                        elif response.value == 3:
+                            cell.fill = good_fill
+                        else:
+                            cell.fill = poor_fill
+                    else:
+                        cell.value = "-"
+                    
+                    cell.alignment = Alignment(horizontal="center")
+                    cell.border = cell_border
+                
+                # Apply borders
+                for col in range(1, len(tracking_headers) + 1):
+                    ws_tracking.cell(row=row, column=col).border = cell_border
+                
+                row += 1
+        
+        # Adjust column widths for all sheets
+        for ws in wb.worksheets:
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Generate filename
+        filename = f"therapy_report_{client.client_serial}_week_{week_num}_{year}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/therapist/email-report', methods=['POST'])
+@require_auth(['therapist'])
+def email_therapy_report():
+    """Send therapy report via email"""
+    try:
+        therapist = request.current_user.therapist
+        data = request.json
+        
+        client_id = data.get('client_id')
+        week = data.get('week')
+        recipient_email = data.get('recipient_email')
+        
+        if not all([client_id, week]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Verify client belongs to therapist
+        client = Client.query.filter_by(
+            id=client_id,
+            therapist_id=therapist.id
+        ).first()
+        
+        if not client:
+            return jsonify({'error': 'Client not found'}), 404
+        
+        # Parse week
+        year, week_num = week.split('-W')
+        year = int(year)
+        week_num = int(week_num)
+        
+        # Calculate week dates
+        jan1 = datetime(year, 1, 1)
+        days_to_monday = (7 - jan1.weekday()) % 7
+        if days_to_monday == 0:
+            days_to_monday = 7
+        first_monday = jan1 + timedelta(days=days_to_monday - 7)
+        week_start = first_monday + timedelta(weeks=week_num - 1)
+        week_end = week_start + timedelta(days=6)
+        
+        # Get check-ins for summary
+        checkins = client.checkins.filter(
+            DailyCheckin.checkin_date.between(week_start.date(), week_end.date())
+        ).order_by(DailyCheckin.checkin_date).all()
+        
+        checkins_completed = len(checkins)
+        
+        # Calculate summary statistics
+        avg_emotional = 0
+        adherence_rate = 0
+        avg_activity = 0
+        
+        if checkins_completed > 0:
+            emotional_values = [c.emotional_value for c in checkins if c.emotional_value]
+            if emotional_values:
+                avg_emotional = sum(emotional_values) / len(emotional_values)
+            
+            med_values = [c.medication_value for c in checkins if c.medication_value and c.medication_value > 0]
+            if med_values:
+                med_adherent = sum(1 for val in med_values if val == 5)
+                adherence_rate = (med_adherent / len(med_values)) * 100
+            
+            activity_values = [c.activity_value for c in checkins if c.activity_value]
+            if activity_values:
+                avg_activity = sum(activity_values) / len(activity_values)
+        
+        # Prepare email content
+        email_content = f"""
+Dear Colleague,
+
+Please find attached the weekly therapy report for client {client.client_serial}.
+
+Report Period: {week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')} (Week {week_num}, {year})
+
+Summary:
+- Check-ins completed: {checkins_completed}/7 days
+- Average emotional rating: {avg_emotional:.1f}/5
+- Medication adherence: {adherence_rate:.0f}%
+- Average activity level: {avg_activity:.1f}/5
+
+The attached Excel file contains:
+- Detailed daily check-ins with color-coded ratings
+- Weekly summary statistics
+- Goal completion tracking
+- Therapist notes and missions
+
+Please review the attached report and contact me if you have any questions.
+
+Best regards,
+{therapist.name}
+{therapist.organization or ''}
+        """
+        
+        # If no email configuration, return content for manual sending
+        if not app.config.get('MAIL_USERNAME'):
+            return jsonify({
+                'success': True,
+                'email_content': email_content.strip(),
+                'recipient': recipient_email or 'Not specified',
+                'subject': f"Weekly Therapy Report - Client {client.client_serial} - Week {week_num}, {year}",
+                'note': 'Email configuration not set up. Please copy this content and attach the downloaded Excel file to send manually.'
+            })
+        
+        # If email is configured, send it
+        try:
+            # First generate the Excel report using the same logic as generate_report
+            # (This is a simplified version - in production you'd refactor to share code)
+            
+            # Create Excel workbook
+            wb = openpyxl.Workbook()
+            # ... (Excel generation code would go here - same as in generate_report)
+            
+            # For now, we'll use the generate_report endpoint internally
+            with app.test_request_context():
+                # Set the current user for the internal request
+                request.current_user = therapist.user
+                request.user_id = therapist.user.id
+                request.user_role = 'therapist'
+                
+                # Generate the report
+                report_response = generate_report(client_id, week)
+                excel_buffer = BytesIO(report_response.get_data())
+            
+            # Create email
+            msg = MIMEMultipart()
+            msg['From'] = app.config['MAIL_USERNAME']
+            msg['To'] = recipient_email or therapist.user.email
+            msg['Subject'] = f"Weekly Therapy Report - Client {client.client_serial} - Week {week_num}, {year}"
+            
+            # Email body
+            msg.attach(MIMEText(email_content, 'plain'))
+            
+            # Attach Excel file
+            excel_attachment = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            excel_attachment.set_payload(excel_buffer.read())
+            encoders.encode_base64(excel_attachment)
+            excel_attachment.add_header(
+                'Content-Disposition',
+                f'attachment; filename=therapy_report_{client.client_serial}_week_{week_num}_{year}.xlsx'
+            )
+            msg.attach(excel_attachment)
+            
+            # Send email
+            server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
+            server.starttls()
+            server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            server.send_message(msg)
+            server.quit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Report sent successfully to {recipient_email or therapist.user.email}'
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Failed to send email: {str(e)}',
+                'note': 'You can download the report and send it manually.'
+            }), 500
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1599,4 +2919,4 @@ if __name__ == '__main__':
         initialize_database()
     
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=not os.environ.get('PRODUCTION'))
+    app.run(host='0.0.0.0', port=port, debug=not os.environ.get('PRODUCTION')

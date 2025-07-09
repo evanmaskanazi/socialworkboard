@@ -533,6 +533,23 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Report Status */
+        #reportStatus {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        #reportStatusContent pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
         /* Loading */
         .loading {
             text-align: center;
@@ -765,11 +782,19 @@
                     </div>
                 </div>
                 
-                <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="generateReport()">
+                        <span>📊</span> Generate Excel Report
+                    </button>
+                    <button class="btn btn-secondary" onclick="prepareEmailReport()">
+                        <span>📧</span> Prepare Email Report
+                    </button>
+                </div>
             </div>
 
-            <div id="reportsList" style="margin-top: 2rem;">
-                <!-- Reports will be listed here -->
+            <div id="reportStatus" style="display: none;">
+                <h4>Report Status</h4>
+                <div id="reportStatusContent"></div>
             </div>
         </div>
     </div>
@@ -833,6 +858,16 @@
                 document.getElementById('activeClients').textContent = data.statistics.active_clients;
                 document.getElementById('recentCheckins').textContent = data.statistics.recent_checkins;
                 document.getElementById('pendingMissions').textContent = data.statistics.pending_missions;
+                
+                // Update recent activity to show it's not implemented
+                document.getElementById('recentActivity').innerHTML = `
+                    <div style="padding: 2rem; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                        <p style="color: #666;">Recent activity feature coming soon</p>
+                        <p style="color: #999; font-size: 0.875rem; margin-top: 0.5rem;">
+                            Check the Clients tab to view individual client progress
+                        </p>
+                    </div>
+                `;
                 
                 // Load clients list
                 loadClients();
@@ -1248,7 +1283,7 @@
                 ).join('');
         }
 
-        // Generate report
+        // Generate Excel report - UPDATED
         async function generateReport() {
             const clientId = document.getElementById('reportClient').value;
             const week = document.getElementById('reportWeek').value;
@@ -1259,23 +1294,93 @@
             }
             
             try {
+                showMessage('Generating report...', 'success');
+                
                 const response = await fetch(`/api/reports/generate/${clientId}/${week}`, {
                     headers: {
                         'Authorization': `Bearer ${authToken}`
                     }
                 });
                 
-                if (!response.ok) {
-                    throw new Error('Failed to generate report');
+                if (response.ok) {
+                    // Get filename from response headers
+                    const contentDisposition = response.headers.get('content-disposition');
+                    const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+                    const filename = filenameMatch ? filenameMatch[1] : `therapy_report_${week}.xlsx`;
+                    
+                    // Download file
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    showMessage('Report downloaded successfully!', 'success');
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Failed to generate report', 'error');
                 }
-                
-                const data = await response.json();
-                showMessage('Report generated successfully!', 'success');
-                
-                // TODO: Display or download report
-                console.log('Report data:', data);
             } catch (error) {
                 showMessage('Error generating report: ' + error.message, 'error');
+            }
+        }
+
+        // Prepare email report - NEW
+        async function prepareEmailReport() {
+            const clientId = document.getElementById('reportClient').value;
+            const week = document.getElementById('reportWeek').value;
+            
+            if (!clientId || !week) {
+                showMessage('Please select client and week', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/therapist/email-report', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        week: week
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show email preview
+                    const statusDiv = document.getElementById('reportStatus');
+                    const statusContent = document.getElementById('reportStatusContent');
+                    statusDiv.style.display = 'block';
+                    
+                    statusContent.innerHTML = `
+                        <div class="form-section">
+                            <h4>Email Report Preview</h4>
+                            <p><strong>To:</strong> ${result.recipient || 'Your email'}</p>
+                            <p><strong>Subject:</strong> ${result.subject}</p>
+                            <div style="margin-top: 1rem;">
+                                <pre>${result.content}</pre>
+                            </div>
+                            <p style="margin-top: 1rem; color: #666;">
+                                <em>${result.note || 'Copy this content to send via your email client'}</em>
+                            </p>
+                        </div>
+                    `;
+                    
+                    showMessage('Email report prepared successfully!', 'success');
+                } else {
+                    showMessage(result.error || 'Failed to prepare email report', 'error');
+                }
+            } catch (error) {
+                showMessage('Error preparing email report: ' + error.message, 'error');
             }
         }
 
@@ -1339,8 +1444,10 @@
         // Logout
         function logout() {
             localStorage.removeItem('authToken');
+            localStorage.removeItem('userRole');
             window.location.href = '/login.html';
         }
     </script>
 </body>
 </html>
+
